@@ -39,14 +39,18 @@ else:
                 # Rank States Tab
                 with state_tab:
                     st.subheader("Rank States")
-                    state_ranking = {}
-                    used_ranks = set()  # Track used ranks across all states
 
+                    # Initialize State Ranking Dictionary
+                    state_ranking = {}
+                    used_ranks = set()  # Track used ranks across states
+
+                    # Create a Table-Like Structure for States
+                    st.write("### States Ranking Table")
                     for state in unique_states:
-                        cols = st.columns([3, 1])  # Adjusted for name and dropdown
-                        with cols[0]:
+                        col1, col2 = st.columns([3, 1])  # Adjusted for name and dropdown
+                        with col1:
                             st.text(state)
-                        with cols[1]:
+                        with col2:
                             rank = st.selectbox(
                                 f"Rank for {state}",
                                 options=[0] + [i for i in range(1, len(unique_states) + 1) if i not in used_ranks],
@@ -63,18 +67,22 @@ else:
                 with program_tab:
                     st.subheader("Rank Programs by TYPE")
 
-                    # Type Selection Dropdown
+                    # Dropdown to Select Program Type
                     selected_type = st.selectbox("Select Program TYPE to Rank:", options=unique_types)
 
                     if selected_type:
                         st.write(f"### Programs for {selected_type}")
+
+                        # Filter Programs by Selected Type
                         filtered_programs = sorted(master_sheet[master_sheet['TYPE'] == selected_type]['Program'].unique())
-                        type_program_ranking = {}
+
+                        # Initialize Program Ranking Dictionary
+                        program_ranking = {}
                         for program in filtered_programs:
-                            cols = st.columns([3, 1])  # Adjusted for name and dropdown
-                            with cols[0]:
+                            col1, col2 = st.columns([3, 1])  # Adjusted for name and dropdown
+                            with col1:
                                 st.text(program)
-                            with cols[1]:
+                            with col2:
                                 rank = st.selectbox(
                                     f"Rank for {program}",
                                     options=[0] + [i for i in range(1, len(master_sheet['Program'].unique()) + 1) if i not in used_ranks],
@@ -84,7 +92,7 @@ else:
                                     if rank in used_ranks:
                                         st.error(f"Duplicate rank detected globally: {rank}")
                                     else:
-                                        type_program_ranking[program] = rank
+                                        program_ranking[program] = rank
                                         used_ranks.add(rank)
 
             # Generate Ordered Table by Rankings
@@ -94,7 +102,7 @@ else:
                 if st.button("Generate Order Table"):
                     # Map rankings to master sheet
                     master_sheet['State Rank'] = master_sheet['State'].map(state_ranking).fillna(0)
-                    master_sheet['Program Rank'] = master_sheet['Program'].map(type_program_ranking).fillna(0)
+                    master_sheet['Program Rank'] = master_sheet['Program'].map(program_ranking).fillna(0)
 
                     # Filter out zero-ranked states and programs
                     filtered_data = master_sheet[
