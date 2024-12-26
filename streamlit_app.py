@@ -16,6 +16,7 @@ else:
 
     # Get unique values for TYPE
     unique_types = sorted(master_sheet['TYPE'].unique())  # Safe sorting after normalization
+    unique_states = master_sheet['State'].unique()
 
     # Sidebar navigation
     st.sidebar.title("Navigation")
@@ -27,7 +28,6 @@ else:
 
         # Ensure necessary columns exist
         if {'State', 'Program', 'College Name', 'TYPE'}.issubset(master_sheet.columns):
-            unique_states = master_sheet['State'].unique()
 
             # Tabs for Ranking and Orders
             tab1, tab2 = st.tabs(["Rank States and Programs", "Order by Ranking"])
@@ -36,31 +36,39 @@ else:
             with tab1:
                 st.subheader("Rank States and Programs")
 
-                # Rank States
-                st.write("### Rank States")
-                state_ranking = {}
-                state_df = pd.DataFrame({'State': unique_states})
-                state_df['Rank'] = state_df['State'].apply(
-                    lambda state: st.number_input(f"Rank for {state}", min_value=0, step=1, key=f"state_{state}")
-                )
-                state_ranking = dict(zip(state_df['State'], state_df['Rank']))
-
-                # Rank Programs by TYPE
-                program_ranking = {}
-                for type_value in unique_types:
-                    st.write(f"### Rank Programs for TYPE: {type_value}")
-                    filtered_programs = master_sheet[master_sheet['TYPE'] == type_value]['Program'].unique()
-                    program_df = pd.DataFrame({'Program': filtered_programs})
-                    program_df['Rank'] = program_df['Program'].apply(
-                        lambda program: st.number_input(
-                            f"Rank for {program} (TYPE: {type_value})", 
-                            min_value=0, 
-                            step=1, 
-                            key=f"program_{program}_{type_value}"
+                # Rank States in Expander
+                with st.expander("Rank States"):
+                    st.write("### Rank States")
+                    state_ranking = {}
+                    state_df = pd.DataFrame({'State': unique_states})
+                    state_df['Rank'] = state_df['State'].apply(
+                        lambda state: st.number_input(
+                            f"Rank for {state}",
+                            min_value=0,
+                            step=1,
+                            key=f"state_{state}",
                         )
                     )
-                    st.write(program_df)
-                    program_ranking.update(dict(zip(program_df['Program'], program_df['Rank'])))
+                    state_ranking = dict(zip(state_df['State'], state_df['Rank']))
+                    st.write(state_df)
+
+                # Rank Programs by TYPE in Expanders
+                program_ranking = {}
+                for type_value in unique_types:
+                    with st.expander(f"Rank Programs for TYPE: {type_value}"):
+                        st.write(f"### Programs in TYPE: {type_value}")
+                        filtered_programs = master_sheet[master_sheet['TYPE'] == type_value]['Program'].unique()
+                        program_df = pd.DataFrame({'Program': filtered_programs})
+                        program_df['Rank'] = program_df['Program'].apply(
+                            lambda program: st.number_input(
+                                f"Rank for {program} (TYPE: {type_value})",
+                                min_value=0,
+                                step=1,
+                                key=f"program_{program}_{type_value}",
+                            )
+                        )
+                        st.write(program_df)
+                        program_ranking.update(dict(zip(program_df['Program'], program_df['Rank'])))
 
             # Generate Ordered Table by Rankings
             with tab2:
