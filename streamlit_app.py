@@ -28,74 +28,69 @@ else:
 
         # Ensure necessary columns exist
         if {'State', 'Program', 'College Name', 'TYPE'}.issubset(master_sheet.columns):
-            # Tabs for Ranking
-            rank_tab, order_tab = st.tabs(["Rank States and Programs", "Order by Ranking"])
 
-            with rank_tab:
-                # Sub-tabs for Ranking States and Programs
-                state_tab, program_tab = st.tabs(["Rank States", "Rank Programs by TYPE"])
+            # Tabs for Ranking and Orders
+            tab1, tab2 = st.tabs(["Rank States and Programs", "Order by Ranking"])
 
-                # Rank States Tab
-                with state_tab:
-                    st.subheader("Rank States")
+            # Ranking States and Programs
+            with tab1:
+                st.subheader("Rank States and Programs")
 
-                    # Initialize State Ranking Dictionary
+                # Rank States in Expanders
+                with st.expander("Rank States"):
+                    st.write("### Rank States")
                     state_ranking = {}
-                    used_ranks = set()  # Track used ranks across states
+                    used_state_ranks = set()  # Track used state ranks
 
-                    # Create a Table-Like Structure for States
-                    st.write("### States Ranking Table")
-                    for state in unique_states:
-                        col1, col2 = st.columns([3, 1])  # Adjusted for name and dropdown
-                        with col1:
-                            st.write(state)
-                        with col2:
-                            rank = st.selectbox(
-                                f"Rank for {state}",
-                                options=[0] + [i for i in range(1, len(unique_states) + 1) if i not in used_ranks],
-                                key=f"state_{state}",
-                            )
-                            if rank > 0:
-                                if rank in used_ranks:
-                                    st.warning(f"Duplicate rank detected: {rank}")
+                    cols_per_row = 5  # Number of widgets per row
+                    rows = len(unique_states) // cols_per_row + (len(unique_states) % cols_per_row > 0)
+
+                    for i in range(rows):
+                        cols = st.columns(cols_per_row)
+                        for j, state in enumerate(unique_states[i * cols_per_row:(i + 1) * cols_per_row]):
+                            with cols[j]:
+                                rank = st.number_input(
+                                    f"Rank for {state}",
+                                    min_value=1,
+                                    step=1,
+                                    key=f"state_{state}",
+                                    help="Choose a unique rank."
+                                )
+                                if rank in used_state_ranks:
+                                    st.error(f"Rank {rank} for state {state} is already used!")
                                 else:
                                     state_ranking[state] = rank
-                                    used_ranks.add(rank)
+                                    used_state_ranks.add(rank)
 
-                # Rank Programs by TYPE Tab
-                with program_tab:
-                    st.subheader("Rank Programs by TYPE")
+                # Rank Programs by TYPE in Expanders
+                program_ranking = {}
+                for type_value in unique_types:
+                    with st.expander(f"Rank Programs for TYPE: {type_value}"):
+                        st.write(f"### Programs in TYPE: {type_value}")
+                        filtered_programs = sorted(master_sheet[master_sheet['TYPE'] == type_value]['Program'].unique())
+                        used_program_ranks = set()  # Track used program ranks
 
-                    # Dropdown to Select Program Type
-                    selected_type = st.selectbox("Select Program TYPE to Rank:", options=unique_types)
+                        rows = len(filtered_programs) // cols_per_row + (len(filtered_programs) % cols_per_row > 0)
 
-                    if selected_type:
-                        st.write(f"### Programs for {selected_type}")
-
-                        # Filter Programs by Selected Type
-                        filtered_programs = sorted(master_sheet[master_sheet['TYPE'] == selected_type]['Program'].unique())
-
-                        # Initialize Program Ranking Dictionary
-                        program_ranking = {}
-                        for program in filtered_programs:
-                            col1, col2 = st.columns([3, 1])  # Adjusted for name and dropdown
-                            with col1:
-                                st.write(program)
-                            with col2:
-                                rank = st.selectbox(
-                                    f"Rank for {program}",
-                                    options=[0] + [i for i in range(1, len(master_sheet['Program'].unique()) + 1) if i not in used_ranks],
-                                    key=f"program_{program}_{selected_type}",
-                                )
-                                if rank > 0:
-                                    if rank in used_ranks:
-                                        st.warning(f"Duplicate rank detected globally: {rank}")
+                        for i in range(rows):
+                            cols = st.columns(cols_per_row)
+                            for j, program in enumerate(filtered_programs[i * cols_per_row:(i + 1) * cols_per_row]):
+                                with cols[j]:
+                                    rank = st.number_input(
+                                        f"Rank for {program}",
+                                        min_value=1,
+                                        step=1,
+                                        key=f"program_{program}_{type_value}",
+                                        help="Choose a unique rank."
+                                    )
+                                    if rank in used_program_ranks:
+                                        st.error(f"Rank {rank} for program {program} is already used!")
                                     else:
                                         program_ranking[program] = rank
-                                        used_ranks.add(rank)
+                                        used_program_ranks.add(rank)
 
             # Generate Ordered Table by Rankings
-            with order_tab:
+            with tab2:
                 st.subheader("Generate Order by Rankings")
 
                 if st.button("Generate Order Table"):
