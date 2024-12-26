@@ -15,8 +15,68 @@ else:
     st.sidebar.title("Navigation")
     page = st.sidebar.radio("Select a page:", ["Order Comparison", "Order Creation", "Fee Checking"])
 
+    # Order Creation Page
+    if page == "Order Creation":
+        st.title("Order Creation Dashboard")
+
+        # Ensure the necessary columns exist
+        if 'State' in master_sheet.columns and 'Program' in master_sheet.columns:
+            unique_states = master_sheet['State'].unique()
+            unique_programs = master_sheet['Program'].unique()
+
+            # Tabs for State Ranking, Program Ranking, and Final Table
+            tab1, tab2, tab3 = st.tabs(["Rank States", "Rank Programs", "Final Ordered Table"])
+
+            # State Ranking
+            with tab1:
+                st.subheader("Rank States")
+                state_ranking = {}
+                for state in unique_states:
+                    rank = st.number_input(f"Rank for {state}", min_value=0, step=1, key=f"state_{state}")
+                    state_ranking[state] = rank
+
+            # Program Ranking
+            with tab2:
+                st.subheader("Rank Programs")
+                program_ranking = {}
+                for program in unique_programs:
+                    rank = st.number_input(f"Rank for {program}", min_value=0, step=1, key=f"program_{program}")
+                    program_ranking[program] = rank
+
+            # Final Ordered Table
+            with tab3:
+                # Generate Ordered Data
+                if st.button("Generate Ordered Data", key="generate_table"):
+                    # Map rankings to master sheet
+                    master_sheet['State Rank'] = master_sheet['State'].map(state_ranking).fillna(0)
+                    master_sheet['Program Rank'] = master_sheet['Program'].map(program_ranking).fillna(0)
+
+                    # Filter out zero-ranked states and programs
+                    filtered_data = master_sheet[
+                        (master_sheet['State Rank'] > 0) & (master_sheet['Program Rank'] > 0)
+                    ]
+
+                    # Sort by selected order (state or program)
+                    order_option = st.radio("Select Order Type", options=["State-wise Order", "Program-wise Order"])
+                    if order_option == "State-wise Order":
+                        ordered_data = filtered_data.sort_values(by=['State Rank', 'Program Rank']).reset_index(drop=True)
+                    else:
+                        ordered_data = filtered_data.sort_values(by=['Program Rank', 'State Rank']).reset_index(drop=True)
+
+                    # Display Ordered Table
+                    st.subheader("Ordered Data")
+                    st.write(ordered_data[['State', 'Program', 'State Rank', 'Program Rank']])
+
+                    # Save to file
+                    if st.button("Save Ordered Data"):
+                        filename = "Ordered_State_Program.xlsx" if order_option == "State-wise Order" else "Ordered_Program_State.xlsx"
+                        ordered_data.to_excel(filename, index=False)
+                        st.success(f"Ordered data saved as '{filename}'.")
+        else:
+            st.error("Required columns 'State' and 'Program' are missing in the master sheet!")
+
     # Order Comparison Page
-    if page == "Order Comparison":
+    elif page == "Order Comparison":
         st.title("Order Comparison Dashboard")
 
         # Upload Comparison File
@@ -53,47 +113,6 @@ else:
                 st.write("No MAIN CODEs missing in Master File.")
         else:
             st.info("Please upload a comparison file to proceed.")
-
-    # Order Creation Page
-    elif page == "Order Creation":
-        st.title("Order Creation Dashboard")
-
-        # Ensure the necessary columns exist
-        if 'State' in master_sheet.columns and 'Program' in master_sheet.columns:
-            unique_states = master_sheet['State'].unique()
-            unique_programs = master_sheet['Program'].unique()
-
-            # State Ranking
-            st.subheader("Rank States")
-            state_ranking = {}
-            for state in unique_states:
-                rank = st.number_input(f"Rank for {state}", min_value=1, step=1, key=f"state_{state}")
-                state_ranking[state] = rank
-
-            # Program Ranking
-            st.subheader("Rank Programs")
-            program_ranking = {}
-            for program in unique_programs:
-                rank = st.number_input(f"Rank for {program}", min_value=1, step=1, key=f"program_{program}")
-                program_ranking[program] = rank
-
-            # Generate Ordered Data
-            if st.button("Generate Ordered Data"):
-                # Sort master sheet by rankings
-                master_sheet['State Rank'] = master_sheet['State'].map(state_ranking)
-                master_sheet['Program Rank'] = master_sheet['Program'].map(program_ranking)
-
-                ordered_data = master_sheet.sort_values(by=['State Rank', 'Program Rank']).reset_index(drop=True)
-
-                st.subheader("Ordered Data")
-                st.write(ordered_data[['State', 'Program', 'State Rank', 'Program Rank']])
-
-                # Save to file
-                if st.button("Save Ordered Data"):
-                    ordered_data.to_excel("Ordered_Program_State.xlsx", index=False)
-                    st.success("Ordered data saved as 'Ordered_Program_State.xlsx'.")
-        else:
-            st.error("Required columns 'State' and 'Program' are missing in the master sheet!")
 
     # Fee Checking Page
     elif page == "Fee Checking":
