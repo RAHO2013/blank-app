@@ -1,12 +1,12 @@
 import streamlit as st
 import pandas as pd
-import os
+from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode
 
 # Constants
 MASTER_FILE = "MASTER EXCEL.xlsx"
 
 # Load MASTER EXCEL file
-if not os.path.exists(MASTER_FILE):
+if not MASTER_FILE or not os.path.exists(MASTER_FILE):
     st.error(f"Master file '{MASTER_FILE}' is missing in the project folder!")
 else:
     # Load the data and normalize the "State" and "TYPE" columns
@@ -40,36 +40,28 @@ else:
                 with state_tab:
                     st.subheader("Rank States")
 
-                    # Initialize State Ranking Dictionary
-                    state_ranking = {}
-                    used_state_ranks = set()  # Track used ranks across states
+                    # Create an editable table for states
+                    state_table = pd.DataFrame({'State': unique_states, 'Rank': [0] * len(unique_states)})
 
-                    # Table Header
-                    col1, col2 = st.columns([3, 1])
-                    with col1:
-                        st.markdown("**State**")
-                    with col2:
-                        st.markdown("**Rank**")
+                    # Set up AgGrid
+                    gb = GridOptionsBuilder.from_dataframe(state_table)
+                    gb.configure_default_column(editable=True)
+                    gb.configure_column("Rank", editable=True)
+                    grid_options = gb.build()
 
-                    # Display States in a Table
-                    for state in unique_states:
-                        col1, col2 = st.columns([3, 1])
-                        with col1:
-                            st.write(state)
-                        with col2:
-                            rank = st.number_input(
-                                f"Rank for {state}",
-                                min_value=0,
-                                step=1,
-                                key=f"state_{state}",
-                                help="Assign a unique rank for the state.",
-                            )
-                            if rank > 0:
-                                if rank in used_state_ranks:
-                                    st.warning(f"Duplicate rank detected for States: {rank}")
-                                else:
-                                    state_ranking[state] = rank
-                                    used_state_ranks.add(rank)
+                    st.write("### Edit State Rankings")
+                    grid_response = AgGrid(
+                        state_table,
+                        gridOptions=grid_options,
+                        update_mode=GridUpdateMode.MANUAL,
+                        fit_columns_on_grid_load=True,
+                    )
+
+                    # Updated table from the grid
+                    updated_state_data = pd.DataFrame(grid_response["data"])
+
+                    st.write("Updated State Rankings:")
+                    st.write(updated_state_data)
 
                 # Rank Programs by TYPE Tab
                 with program_tab:
@@ -79,41 +71,29 @@ else:
                     selected_type = st.selectbox("Select Program TYPE to Rank:", options=unique_types)
 
                     if selected_type:
-                        st.write(f"### Programs for {selected_type}")
-
                         # Filter Programs by Selected Type
                         filtered_programs = sorted(master_sheet[master_sheet['TYPE'] == selected_type]['Program'].unique())
+                        program_table = pd.DataFrame({'Program': filtered_programs, 'Rank': [0] * len(filtered_programs)})
 
-                        # Initialize Program Ranking Dictionary
-                        program_ranking = {}
-                        used_program_ranks = set()  # Track used ranks locally for this TYPE
+                        # Set up AgGrid
+                        gb = GridOptionsBuilder.from_dataframe(program_table)
+                        gb.configure_default_column(editable=True)
+                        gb.configure_column("Rank", editable=True)
+                        grid_options = gb.build()
 
-                        # Table Header
-                        col1, col2 = st.columns([3, 1])
-                        with col1:
-                            st.markdown("**Program**")
-                        with col2:
-                            st.markdown("**Rank**")
+                        st.write(f"### Edit Program Rankings for TYPE: {selected_type}")
+                        grid_response = AgGrid(
+                            program_table,
+                            gridOptions=grid_options,
+                            update_mode=GridUpdateMode.MANUAL,
+                            fit_columns_on_grid_load=True,
+                        )
 
-                        # Display Programs in a Table
-                        for program in filtered_programs:
-                            col1, col2 = st.columns([3, 1])
-                            with col1:
-                                st.write(program)
-                            with col2:
-                                rank = st.number_input(
-                                    f"Rank for {program}",
-                                    min_value=0,
-                                    step=1,
-                                    key=f"program_{program}_{selected_type}",
-                                    help="Assign a unique rank for the program.",
-                                )
-                                if rank > 0:
-                                    if rank in used_program_ranks:
-                                        st.warning(f"Duplicate rank detected for Programs ({selected_type}): {rank}")
-                                    else:
-                                        program_ranking[program] = rank
-                                        used_program_ranks.add(rank)
+                        # Updated table from the grid
+                        updated_program_data = pd.DataFrame(grid_response["data"])
+
+                        st.write(f"Updated Program Rankings for TYPE: {selected_type}")
+                        st.write(updated_program_data)
 
             # Generate Ordered Table by Rankings
             with order_tab:
@@ -121,6 +101,9 @@ else:
 
                 if st.button("Generate Order Table"):
                     # Map rankings to master sheet
+                    state_ranking = dict(zip(updated_state_data["State"], updated_state_data["Rank"]))
+                    program_ranking = dict(zip(updated_program_data["Program"], updated_program_data["Rank"]))
+
                     master_sheet['State Rank'] = master_sheet['State'].map(state_ranking).fillna(0)
                     master_sheet['Program Rank'] = master_sheet['Program'].map(program_ranking).fillna(0)
 
