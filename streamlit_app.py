@@ -14,9 +14,9 @@ else:
     master_sheet['State'] = master_sheet['State'].str.strip().str.upper()  # Normalize state names to uppercase
     master_sheet['TYPE'] = master_sheet['TYPE'].astype(str).str.strip().str.upper()  # Normalize TYPE to uppercase strings
 
-    # Get unique values for TYPE
-    unique_types = sorted(master_sheet['TYPE'].unique())  # Safe sorting after normalization
-    unique_states = master_sheet['State'].unique()
+    # Get unique values for TYPE and States
+    unique_types = sorted(master_sheet['TYPE'].unique())
+    unique_states = sorted(master_sheet['State'].unique())
 
     # Sidebar navigation
     st.sidebar.title("Navigation")
@@ -36,39 +36,49 @@ else:
             with tab1:
                 st.subheader("Rank States and Programs")
 
-                # Rank States in Expander
-                with st.expander("Rank States"):
-                    st.write("### Rank States")
-                    state_ranking = {}
-                    state_df = pd.DataFrame({'State': unique_states})
-                    state_df['Rank'] = state_df['State'].apply(
-                        lambda state: st.number_input(
+                # Rank States in Columns
+                st.write("### Rank States (Side by Side)")
+                state_ranking = {}
+                used_state_ranks = set()  # Track used state ranks
+
+                cols = st.columns(len(unique_states))
+                for i, state in enumerate(unique_states):
+                    with cols[i % len(cols)]:
+                        rank = st.number_input(
                             f"Rank for {state}",
-                            min_value=0,
+                            min_value=1,
                             step=1,
                             key=f"state_{state}",
+                            help="Choose a unique rank."
                         )
-                    )
-                    state_ranking = dict(zip(state_df['State'], state_df['Rank']))
-                    st.write(state_df)
+                        if rank in used_state_ranks:
+                            st.error(f"Rank {rank} for state {state} is already used!")
+                        else:
+                            state_ranking[state] = rank
+                            used_state_ranks.add(rank)
 
-                # Rank Programs by TYPE in Expanders
+                # Rank Programs by TYPE
                 program_ranking = {}
                 for type_value in unique_types:
-                    with st.expander(f"Rank Programs for TYPE: {type_value}"):
-                        st.write(f"### Programs in TYPE: {type_value}")
-                        filtered_programs = master_sheet[master_sheet['TYPE'] == type_value]['Program'].unique()
-                        program_df = pd.DataFrame({'Program': filtered_programs})
-                        program_df['Rank'] = program_df['Program'].apply(
-                            lambda program: st.number_input(
-                                f"Rank for {program} (TYPE: {type_value})",
-                                min_value=0,
+                    st.write(f"### Rank Programs for TYPE: {type_value} (Side by Side)")
+                    filtered_programs = sorted(master_sheet[master_sheet['TYPE'] == type_value]['Program'].unique())
+                    used_program_ranks = set()  # Track used program ranks
+
+                    cols = st.columns(len(filtered_programs))
+                    for i, program in enumerate(filtered_programs):
+                        with cols[i % len(cols)]:
+                            rank = st.number_input(
+                                f"Rank for {program}",
+                                min_value=1,
                                 step=1,
                                 key=f"program_{program}_{type_value}",
+                                help="Choose a unique rank."
                             )
-                        )
-                        st.write(program_df)
-                        program_ranking.update(dict(zip(program_df['Program'], program_df['Rank'])))
+                            if rank in used_program_ranks:
+                                st.error(f"Rank {rank} for program {program} is already used!")
+                            else:
+                                program_ranking[program] = rank
+                                used_program_ranks.add(rank)
 
             # Generate Ordered Table by Rankings
             with tab2:
