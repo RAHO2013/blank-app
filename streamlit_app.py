@@ -20,7 +20,7 @@ else:
         st.title("Order Creation Dashboard")
 
         # Ensure necessary columns exist
-        if 'State' in master_sheet.columns and 'Program' in master_sheet.columns:
+        if {'State', 'Program', 'College Name'}.issubset(master_sheet.columns):
             unique_states = master_sheet['State'].unique()
             unique_programs = master_sheet['Program'].unique()
 
@@ -77,16 +77,16 @@ else:
                     # Create Order Number
                     ordered_data['Order Number'] = range(1, len(ordered_data) + 1)
 
-                    # Display Ordered Table
+                    # Display Ordered Table with College Name
                     st.write("### Ordered Table")
-                    st.write(ordered_data[['Program', 'State', 'Program Rank', 'State Rank', 'Order Number']])
+                    st.write(ordered_data[['Program', 'State', 'College Name', 'Program Rank', 'State Rank', 'Order Number']])
 
                     # Save to file
                     if st.button("Save Ordered Table"):
                         ordered_data.to_excel("Ordered_Program_State.xlsx", index=False)
                         st.success("Ordered table saved as 'Ordered_Program_State.xlsx'.")
         else:
-            st.error("Required columns 'State' and 'Program' are missing in the master sheet!")
+            st.error("Required columns 'State', 'Program', and 'College Name' are missing in the master sheet!")
 
     # Order Comparison Page
     elif page == "Order Comparison":
