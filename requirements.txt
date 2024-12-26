@@ -1,4 +1,3 @@
 streamlit
 openpyxl
 pandas
-st_aggrid
