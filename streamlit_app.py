@@ -59,9 +59,9 @@ else:
         st.title("Order Creation Dashboard")
 
         # Ensure the necessary columns exist
-        if 'State' in master_sheet.columns and 'Course' in master_sheet.columns:
+        if 'State' in master_sheet.columns and 'Program' in master_sheet.columns:
             unique_states = master_sheet['State'].unique()
-            unique_courses = master_sheet['Course'].unique()
+            unique_programs = master_sheet['Program'].unique()
 
             # State Ranking
             st.subheader("Rank States")
@@ -70,30 +70,30 @@ else:
                 rank = st.number_input(f"Rank for {state}", min_value=1, step=1, key=f"state_{state}")
                 state_ranking[state] = rank
 
-            # Course Ranking
-            st.subheader("Rank Courses")
-            course_ranking = {}
-            for course in unique_courses:
-                rank = st.number_input(f"Rank for {course}", min_value=1, step=1, key=f"course_{course}")
-                course_ranking[course] = rank
+            # Program Ranking
+            st.subheader("Rank Programs")
+            program_ranking = {}
+            for program in unique_programs:
+                rank = st.number_input(f"Rank for {program}", min_value=1, step=1, key=f"program_{program}")
+                program_ranking[program] = rank
 
             # Generate Ordered Data
             if st.button("Generate Ordered Data"):
                 # Sort master sheet by rankings
                 master_sheet['State Rank'] = master_sheet['State'].map(state_ranking)
-                master_sheet['Course Rank'] = master_sheet['Course'].map(course_ranking)
+                master_sheet['Program Rank'] = master_sheet['Program'].map(program_ranking)
 
-                ordered_data = master_sheet.sort_values(by=['State Rank', 'Course Rank']).reset_index(drop=True)
+                ordered_data = master_sheet.sort_values(by=['State Rank', 'Program Rank']).reset_index(drop=True)
 
                 st.subheader("Ordered Data")
-                st.write(ordered_data[['State', 'Course', 'State Rank', 'Course Rank']])
+                st.write(ordered_data[['State', 'Program', 'State Rank', 'Program Rank']])
 
                 # Save to file
                 if st.button("Save Ordered Data"):
-                    ordered_data.to_excel("Ordered_Course_State.xlsx", index=False)
-                    st.success("Ordered data saved as 'Ordered_Course_State.xlsx'.")
+                    ordered_data.to_excel("Ordered_Program_State.xlsx", index=False)
+                    st.success("Ordered data saved as 'Ordered_Program_State.xlsx'.")
         else:
-            st.error("Required columns 'State' and 'Course' are missing in the master sheet!")
+            st.error("Required columns 'State' and 'Program' are missing in the master sheet!")
 
     # Fee Checking Page
     elif page == "Fee Checking":
@@ -102,7 +102,7 @@ else:
         st.header("Fee Comparison")
         fee_column = "Fees"  # Assuming 'Fees' is the column for fee data
         if fee_column in master_sheet.columns:
-            fee_comparison = master_sheet.groupby("Course")[fee_column].mean()
+            fee_comparison = master_sheet.groupby("Program")[fee_column].mean()
             st.bar_chart(fee_comparison)
         else:
             st.warning(f"Fee column '{fee_column}' not found in the master sheet!")
