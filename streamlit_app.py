@@ -36,49 +36,58 @@ else:
             with tab1:
                 st.subheader("Rank States and Programs")
 
-                # Rank States in Columns
-                st.write("### Rank States (Side by Side)")
-                state_ranking = {}
-                used_state_ranks = set()  # Track used state ranks
+                # Rank States in Expanders
+                with st.expander("Rank States"):
+                    st.write("### Rank States")
+                    state_ranking = {}
+                    used_state_ranks = set()  # Track used state ranks
 
-                cols = st.columns(len(unique_states))
-                for i, state in enumerate(unique_states):
-                    with cols[i % len(cols)]:
-                        rank = st.number_input(
-                            f"Rank for {state}",
-                            min_value=1,
-                            step=1,
-                            key=f"state_{state}",
-                            help="Choose a unique rank."
-                        )
-                        if rank in used_state_ranks:
-                            st.error(f"Rank {rank} for state {state} is already used!")
-                        else:
-                            state_ranking[state] = rank
-                            used_state_ranks.add(rank)
+                    cols_per_row = 5  # Number of widgets per row
+                    rows = len(unique_states) // cols_per_row + (len(unique_states) % cols_per_row > 0)
 
-                # Rank Programs by TYPE
+                    for i in range(rows):
+                        cols = st.columns(cols_per_row)
+                        for j, state in enumerate(unique_states[i * cols_per_row:(i + 1) * cols_per_row]):
+                            with cols[j]:
+                                rank = st.number_input(
+                                    f"Rank for {state}",
+                                    min_value=1,
+                                    step=1,
+                                    key=f"state_{state}",
+                                    help="Choose a unique rank."
+                                )
+                                if rank in used_state_ranks:
+                                    st.error(f"Rank {rank} for state {state} is already used!")
+                                else:
+                                    state_ranking[state] = rank
+                                    used_state_ranks.add(rank)
+
+                # Rank Programs by TYPE in Expanders
                 program_ranking = {}
                 for type_value in unique_types:
-                    st.write(f"### Rank Programs for TYPE: {type_value} (Side by Side)")
-                    filtered_programs = sorted(master_sheet[master_sheet['TYPE'] == type_value]['Program'].unique())
-                    used_program_ranks = set()  # Track used program ranks
+                    with st.expander(f"Rank Programs for TYPE: {type_value}"):
+                        st.write(f"### Programs in TYPE: {type_value}")
+                        filtered_programs = sorted(master_sheet[master_sheet['TYPE'] == type_value]['Program'].unique())
+                        used_program_ranks = set()  # Track used program ranks
 
-                    cols = st.columns(len(filtered_programs))
-                    for i, program in enumerate(filtered_programs):
-                        with cols[i % len(cols)]:
-                            rank = st.number_input(
-                                f"Rank for {program}",
-                                min_value=1,
-                                step=1,
-                                key=f"program_{program}_{type_value}",
-                                help="Choose a unique rank."
-                            )
-                            if rank in used_program_ranks:
-                                st.error(f"Rank {rank} for program {program} is already used!")
-                            else:
-                                program_ranking[program] = rank
-                                used_program_ranks.add(rank)
+                        rows = len(filtered_programs) // cols_per_row + (len(filtered_programs) % cols_per_row > 0)
+
+                        for i in range(rows):
+                            cols = st.columns(cols_per_row)
+                            for j, program in enumerate(filtered_programs[i * cols_per_row:(i + 1) * cols_per_row]):
+                                with cols[j]:
+                                    rank = st.number_input(
+                                        f"Rank for {program}",
+                                        min_value=1,
+                                        step=1,
+                                        key=f"program_{program}_{type_value}",
+                                        help="Choose a unique rank."
+                                    )
+                                    if rank in used_program_ranks:
+                                        st.error(f"Rank {rank} for program {program} is already used!")
+                                    else:
+                                        program_ranking[program] = rank
+                                        used_program_ranks.add(rank)
 
             # Generate Ordered Table by Rankings
             with tab2:
@@ -113,54 +122,3 @@ else:
                         st.success("Ordered table saved as 'Ordered_Program_State.xlsx'.")
         else:
             st.error("Required columns 'State', 'Program', 'College Name', and 'TYPE' are missing in the master sheet!")
-
-    # Order Comparison Page
-    elif page == "Order Comparison":
-        st.title("Order Comparison Dashboard")
-
-        # Upload Comparison File
-        uploaded_file = st.file_uploader("Upload Comparison File (Excel)", type=["xlsx"])
-        if uploaded_file is not None:
-            comparison_sheet = pd.read_excel(uploaded_file, sheet_name='Sheet1')
-
-            # Create MAIN CODE for Comparison
-            if 'Institute Name' in comparison_sheet.columns and 'Program Name' in comparison_sheet.columns:
-                comparison_sheet['MAIN CODE'] = comparison_sheet['Institute Name'].astype(str) + "_" + comparison_sheet['Program Name'].astype(str)
-                st.success("MAIN CODE created for Comparison file.")
-
-            # Compare MAIN CODEs between Master and Comparison Sheets
-            st.header("MAIN CODE-Based Comparison")
-            master_sheet['MAIN CODE'] = master_sheet['MCC College Code'].astype(str) + "_" + master_sheet['COURSE CODE'].astype(str)
-
-            master_codes = set(master_sheet['MAIN CODE'])
-            comparison_codes = set(comparison_sheet['MAIN CODE'])
-
-            missing_in_comparison = master_codes - comparison_codes
-            missing_in_master = comparison_codes - master_codes
-
-            # Display Results
-            st.subheader("MAIN CODE Missing in Comparison File")
-            if missing_in_comparison:
-                st.write(pd.DataFrame(list(missing_in_comparison), columns=['MAIN CODE']))
-            else:
-                st.write("No MAIN CODEs missing in Comparison File.")
-
-            st.subheader("MAIN CODE Missing in Master File")
-            if missing_in_master:
-                st.write(pd.DataFrame(list(missing_in_master), columns=['MAIN CODE']))
-            else:
-                st.write("No MAIN CODEs missing in Master File.")
-        else:
-            st.info("Please upload a comparison file to proceed.")
-
-    # Fee Checking Page
-    elif page == "Fee Checking":
-        st.title("Fee Checking Dashboard")
-
-        st.header("Fee Comparison")
-        fee_column = "Fees"  # Assuming 'Fees' is the column for fee data
-        if fee_column in master_sheet.columns:
-            fee_comparison = master_sheet.groupby("Program")[fee_column].mean()
-            st.bar_chart(fee_comparison)
-        else:
-            st.warning(f"Fee column '{fee_column}' not found in the master sheet!")
