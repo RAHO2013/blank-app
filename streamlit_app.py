@@ -35,7 +35,37 @@ else:
             with tab1:
                 st.subheader("Rank States and Programs")
 
-                # Rank Programs by TYPE in Expanders
+                # Compact State Ranking Section
+                with st.expander("Rank States"):
+                    st.write("### Rank States")
+
+                    state_ranking = {}
+                    used_state_ranks = set()  # Track used ranks for states
+
+                    # Prepare compact layout for state ranking
+                    state_data = []
+                    for state in unique_states:
+                        col1, col2 = st.columns([3, 1])  # Compact columns
+                        with col1:
+                            st.write(state)
+                        with col2:
+                            rank = st.selectbox(
+                                f"Rank for {state}",
+                                options=[0] + [i for i in range(1, len(unique_states) + 1) if i not in used_state_ranks],
+                                key=f"state_{state}",
+                            )
+                            if rank > 0:
+                                used_state_ranks.add(rank)
+                            state_data.append({"State": state, "Rank": rank})
+
+                    # Display only non-zero ranks for the user
+                    state_df = pd.DataFrame(state_data)
+                    display_states = state_df[state_df["Rank"] > 0].sort_values("Rank")
+                    st.write(display_states)
+
+                    state_ranking = dict(zip(state_df['State'], state_df['Rank']))
+
+                # Compact Program Ranking Section by TYPE
                 program_ranking = {}
                 for type_value in unique_types:
                     with st.expander(f"Rank Programs for TYPE: {type_value}"):
@@ -44,20 +74,24 @@ else:
 
                         used_program_ranks = set()  # Track used ranks for programs
 
-                        # Create a compact table for programs
-                        rows = []
+                        # Prepare compact layout for program ranking
+                        program_data = []
                         for program in filtered_programs:
-                            rank = st.selectbox(
-                                f"Rank for {program}",
-                                options=[0] + [i for i in range(1, len(filtered_programs) + 1) if i not in used_program_ranks],
-                                key=f"program_{program}_{type_value}",
-                            )
-                            if rank > 0:
-                                used_program_ranks.add(rank)
-                            rows.append({"Program": program, "Rank": rank})
+                            col1, col2 = st.columns([3, 1])  # Compact columns
+                            with col1:
+                                st.write(program)
+                            with col2:
+                                rank = st.selectbox(
+                                    f"Rank for {program}",
+                                    options=[0] + [i for i in range(1, len(filtered_programs) + 1) if i not in used_program_ranks],
+                                    key=f"program_{program}_{type_value}",
+                                )
+                                if rank > 0:
+                                    used_program_ranks.add(rank)
+                                program_data.append({"Program": program, "Rank": rank})
 
-                        # Convert to DataFrame and display
-                        program_df = pd.DataFrame(rows)
+                        # Display only non-zero ranks for the user
+                        program_df = pd.DataFrame(program_data)
                         display_programs = program_df[program_df["Rank"] > 0].sort_values("Rank")
                         st.write(display_programs)
 
@@ -69,20 +103,30 @@ else:
 
                 if st.button("Generate Order Table"):
                     # Map rankings to master sheet
-                    master_sheet['Program Rank'] = master_sheet['Program'].map(program_ranking).fillna(0)
+                    master_sheet['State Rank'] = master_sheet['State'].map(
+                        dict(zip(state_df['State'], state_df['Rank']))
+                    ).fillna(0)
+                    master_sheet['Program Rank'] = master_sheet['Program'].map(
+                        dict(zip(program_df['Program'], program_df['Rank']))
+                    ).fillna(0)
 
-                    # Filter out zero-ranked programs
-                    filtered_data = master_sheet[master_sheet['Program Rank'] > 0]
+                    # Filter out zero-ranked states and programs
+                    filtered_data = master_sheet[
+                        (master_sheet['State Rank'] > 0) | 
+                        (master_sheet['Program Rank'] > 0)
+                    ]
 
-                    # Sort by Program Rank
-                    ordered_data = filtered_data.sort_values(by=['Program Rank']).reset_index(drop=True)
+                    # Sort by Program Rank and then State Rank
+                    ordered_data = filtered_data.sort_values(
+                        by=['Program Rank', 'State Rank']
+                    ).reset_index(drop=True)
 
                     # Create Order Number
                     ordered_data['Order Number'] = range(1, len(ordered_data) + 1)
 
                     # Display Ordered Table with College Name
                     st.write("### Ordered Table")
-                    st.write(ordered_data[['Program', 'State', 'College Name', 'TYPE', 'Program Rank', 'Order Number']])
+                    st.write(ordered_data[['Program', 'State', 'College Name', 'TYPE', 'Program Rank', 'State Rank', 'Order Number']])
 
                     # Save to file
                     if st.button("Save Ordered Table"):
