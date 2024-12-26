@@ -14,7 +14,7 @@ else:
     master_sheet['State'] = master_sheet['State'].str.strip().str.upper()  # Normalize state names to uppercase
     master_sheet['TYPE'] = master_sheet['TYPE'].astype(str).str.strip().str.upper()  # Normalize TYPE to uppercase strings
 
-    # Get unique values for TYPE
+    # Get unique values for TYPE and States
     unique_types = sorted(master_sheet['TYPE'].unique())
     unique_states = sorted(master_sheet['State'].unique())
 
@@ -41,54 +41,56 @@ else:
                     state_ranking = {}
                     used_state_ranks = set()  # Track used state ranks
 
-                    state_df = pd.DataFrame({'State': unique_states})
-                    state_df['Rank'] = state_df['State'].apply(
-                        lambda state: st.selectbox(
-                            f"{state}",
-                            options=[0] + [i for i in range(1, len(unique_states) + 1) if i not in used_state_ranks],
-                            key=f"state_{state}",
-                        )
-                    )
+                    state_data = []
+                    for state in unique_states:
+                        col1, col2 = st.columns([3, 1])  # Adjust layout for compactness
+                        with col1:
+                            st.write(state)
+                        with col2:
+                            rank = st.selectbox(
+                                f"Rank for {state}",
+                                options=[0] + [i for i in range(1, len(unique_states) + 1) if i not in used_state_ranks],
+                                key=f"state_{state}",
+                            )
+                            if rank > 0:
+                                used_state_ranks.add(rank)
+                            state_data.append({"State": state, "Rank": rank})
 
-                    # Update the set with newly assigned ranks
-                    for state, rank in zip(state_df['State'], state_df['Rank']):
-                        if rank > 0:
-                            used_state_ranks.add(rank)
-
-                    # Remove rows with rank 0 for display
-                    display_states = state_df[state_df['Rank'] > 0].sort_values('Rank')
+                    # Display only non-zero ranks for the user
+                    state_df = pd.DataFrame(state_data)
+                    display_states = state_df[state_df["Rank"] > 0].sort_values("Rank")
                     st.write(display_states)
-
-                    state_ranking = dict(zip(state_df['State'], state_df['Rank']))
 
                 # Rank Programs by TYPE in Expanders
                 program_ranking = {}
                 for type_value in unique_types:
                     with st.expander(f"Rank Programs for TYPE: {type_value}"):
                         st.write(f"### Programs in TYPE: {type_value}")
-                        filtered_programs = sorted(master_sheet[master_sheet['TYPE'] == type_value]['Program'].unique())
+                        filtered_programs = master_sheet[master_sheet['TYPE'] == type_value]['Program'].unique()
 
-                        used_program_ranks = set()  # Track used ranks for programs in this TYPE
+                        used_program_ranks = set()  # Track used ranks for programs
 
-                        program_df = pd.DataFrame({'Program': filtered_programs})
-                        program_df['Rank'] = program_df['Program'].apply(
-                            lambda program: st.selectbox(
-                                f"{program}",
-                                options=[0] + [i for i in range(1, len(filtered_programs) + 1) if i not in used_program_ranks],
-                                key=f"program_{program}_{type_value}",
-                            )
-                        )
+                        program_data = []
+                        for program in filtered_programs:
+                            col1, col2 = st.columns([3, 1])
+                            with col1:
+                                st.write(program)
+                            with col2:
+                                rank = st.selectbox(
+                                    f"Rank for {program}",
+                                    options=[0] + [i for i in range(1, len(filtered_programs) + 1) if i not in used_program_ranks],
+                                    key=f"program_{program}_{type_value}",
+                                )
+                                if rank > 0:
+                                    used_program_ranks.add(rank)
+                                program_data.append({"Program": program, "Rank": rank})
 
-                        # Update the set with newly assigned ranks
-                        for program, rank in zip(program_df['Program'], program_df['Rank']):
-                            if rank > 0:
-                                used_program_ranks.add(rank)
-
-                        # Remove rows with rank 0 for display
-                        display_programs = program_df[program_df['Rank'] > 0].sort_values('Rank')
+                        # Display only non-zero ranks for the user
+                        program_df = pd.DataFrame(program_data)
+                        display_programs = program_df[program_df["Rank"] > 0].sort_values("Rank")
                         st.write(display_programs)
 
-                        program_ranking.update(dict(zip(program_df['Program'], program_df['Rank'])))
+                        program_ranking.update(dict(zip(program_df["Program"], program_df["Rank"])))
 
             # Generate Ordered Table by Rankings
             with tab2:
@@ -96,8 +98,12 @@ else:
 
                 if st.button("Generate Order Table"):
                     # Map rankings to master sheet
-                    master_sheet['State Rank'] = master_sheet['State'].map(state_ranking).fillna(0)
-                    master_sheet['Program Rank'] = master_sheet['Program'].map(program_ranking).fillna(0)
+                    master_sheet['State Rank'] = master_sheet['State'].map(
+                        dict(zip(state_df['State'], state_df['Rank']))
+                    ).fillna(0)
+                    master_sheet['Program Rank'] = master_sheet['Program'].map(
+                        dict(zip(program_df['Program'], program_df['Rank']))
+                    ).fillna(0)
 
                     # Filter out zero-ranked states and programs
                     filtered_data = master_sheet[
