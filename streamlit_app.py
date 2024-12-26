@@ -32,7 +32,6 @@ else:
             # Tabs for Ranking and Orders
             tab1, tab2 = st.tabs(["Rank States and Programs", "Order by Ranking"])
 
-            # Ranking States and Programs
             with tab1:
                 st.subheader("Rank States and Programs")
 
