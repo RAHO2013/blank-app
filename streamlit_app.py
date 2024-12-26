@@ -14,10 +14,6 @@ else:
     master_sheet['State'] = master_sheet['State'].str.strip().str.upper()  # Normalize state names to uppercase
     master_sheet['TYPE'] = master_sheet['TYPE'].astype(str).str.strip().str.upper()  # Normalize TYPE to uppercase strings
 
-    # Get unique values for TYPE and States
-    unique_types = sorted(master_sheet['TYPE'].unique())
-    unique_states = sorted(master_sheet['State'].unique())
-
     # Sidebar navigation
     st.sidebar.title("Navigation")
     page = st.sidebar.radio("Select a page:", ["Order Comparison", "Order Creation", "Fee Checking"])
@@ -29,67 +25,57 @@ else:
         # Ensure necessary columns exist
         if {'State', 'Program', 'College Name', 'TYPE'}.issubset(master_sheet.columns):
 
-            # Tabs for Ranking and Orders
-            tab1, tab2 = st.tabs(["Rank States and Programs", "Order by Ranking"])
+            # Dropdown to select column to rank
+            st.subheader("Select Column to Rank")
+            column_options = ["State", "Program", "TYPE"]
+            selected_column = st.selectbox("Choose a column to rank:", column_options)
 
-            # Ranking States and Programs
-            with tab1:
-                st.subheader("Rank States and Programs")
+            # Filter unique values based on the selected column
+            unique_items = sorted(master_sheet[selected_column].unique())
 
-                # Side-by-Side Ranking Widgets
-                cols = st.columns(len(unique_types) + 1)  # One column for states, and one for each TYPE
+            # Display ranking widgets in a compact view
+            st.subheader(f"Rank {selected_column}s")
+            item_ranking = {}
+            cols_per_row = 4  # Number of items to display per row
+            rows = len(unique_items) // cols_per_row + (len(unique_items) % cols_per_row > 0)
 
-                # Rank States
-                state_ranking = {}
-                with cols[0]:
-                    st.write("### Rank States")
-                    for state in unique_states:
-                        state_ranking[state] = st.number_input(
-                            state, min_value=1, step=1, key=f"state_{state}"
+            for i in range(rows):
+                cols = st.columns(cols_per_row)
+                for j, item in enumerate(unique_items[i * cols_per_row:(i + 1) * cols_per_row]):
+                    with cols[j]:
+                        rank = st.number_input(
+                            f"{item} +",
+                            min_value=1,
+                            step=1,
+                            key=f"{selected_column}_{item}",
+                            help="Assign a unique rank"
                         )
+                        item_ranking[item] = rank
 
-                # Rank Programs by TYPE
-                program_ranking = {}
-                for i, type_value in enumerate(unique_types):
-                    with cols[i + 1]:
-                        st.write(f"### Rank Programs ({type_value})")
-                        filtered_programs = sorted(master_sheet[master_sheet['TYPE'] == type_value]['Program'].unique())
-                        for program in filtered_programs:
-                            program_ranking[program] = st.number_input(
-                                program, min_value=1, step=1, key=f"program_{program}_{type_value}"
-                            )
+            # Generate Ranked Data
+            st.subheader("Generate Ranked Data")
+            if st.button("Generate Ranked Table"):
+                # Map rankings to the selected column
+                master_sheet[f"{selected_column} Rank"] = master_sheet[selected_column].map(item_ranking).fillna(0)
 
-            # Generate Ordered Table by Rankings
-            with tab2:
-                st.subheader("Generate Order by Rankings")
+                # Filter out zero-ranked items
+                ranked_data = master_sheet[master_sheet[f"{selected_column} Rank"] > 0]
 
-                if st.button("Generate Order Table"):
-                    # Map rankings to master sheet
-                    master_sheet['State Rank'] = master_sheet['State'].map(state_ranking).fillna(0)
-                    master_sheet['Program Rank'] = master_sheet['Program'].map(program_ranking).fillna(0)
+                # Sort by the selected column's rank
+                ranked_data = ranked_data.sort_values(by=f"{selected_column} Rank").reset_index(drop=True)
 
-                    # Filter out zero-ranked states and programs
-                    filtered_data = master_sheet[
-                        (master_sheet['State Rank'] > 0) & 
-                        (master_sheet['Program Rank'] > 0)
-                    ]
+                # Create Order Number
+                ranked_data['Order Number'] = range(1, len(ranked_data) + 1)
 
-                    # Sort by Program Rank and then State Rank
-                    ordered_data = filtered_data.sort_values(
-                        by=['Program Rank', 'State Rank']
-                    ).reset_index(drop=True)
+                # Display Ranked Table
+                st.write(f"### Ranked Table for {selected_column}s")
+                st.write(ranked_data[[selected_column, f"{selected_column} Rank", 'Order Number']])
 
-                    # Create Order Number
-                    ordered_data['Order Number'] = range(1, len(ordered_data) + 1)
-
-                    # Display Ordered Table with College Name
-                    st.write("### Ordered Table")
-                    st.write(ordered_data[['Program', 'State', 'College Name', 'TYPE', 'Program Rank', 'State Rank', 'Order Number']])
-
-                    # Save to file
-                    if st.button("Save Ordered Table"):
-                        ordered_data.to_excel("Ordered_Program_State.xlsx", index=False)
-                        st.success("Ordered table saved as 'Ordered_Program_State.xlsx'.")
+                # Save to file
+                if st.button("Save Ranked Table"):
+                    filename = f"Ranked_{selected_column}.xlsx"
+                    ranked_data.to_excel(filename, index=False)
+                    st.success(f"Ranked table saved as '{filename}'.")
         else:
             st.error("Required columns 'State', 'Program', 'College Name', and 'TYPE' are missing in the master sheet!")
 
