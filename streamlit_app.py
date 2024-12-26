@@ -44,24 +44,25 @@ else:
                     state_ranking = {}
                     used_state_ranks = set()  # Track used state ranks
 
-                    # Create a Table-Like Structure for States
+                    # Display States in a Compact Table
                     st.write("### States Ranking Table")
+                    state_data = []
                     for state in unique_states:
-                        col1, col2 = st.columns([3, 1])  # Adjusted for name and dropdown
-                        with col1:
-                            st.write(state)
-                        with col2:
-                            rank = st.selectbox(
-                                f"Rank for {state}",
-                                options=[0] + [i for i in range(1, len(unique_states) + 1) if i not in used_state_ranks],
-                                key=f"state_{state}",
-                            )
-                            if rank > 0:
-                                if rank in used_state_ranks:
-                                    st.warning(f"Duplicate rank detected for States: {rank}")
-                                else:
-                                    state_ranking[state] = rank
-                                    used_state_ranks.add(rank)
+                        rank = st.selectbox(
+                            f"{state}",
+                            options=[0] + [i for i in range(1, len(unique_states) + 1) if i not in used_state_ranks],
+                            key=f"state_{state}",
+                        )
+                        if rank > 0:
+                            if rank in used_state_ranks:
+                                st.warning(f"Duplicate rank detected for States: {rank}")
+                            else:
+                                state_ranking[state] = rank
+                                used_state_ranks.add(rank)
+                        state_data.append({"State": state, "Rank": rank})
+
+                    # Display Ranked States in a Table
+                    st.write(pd.DataFrame(state_data).sort_values("Rank"))
 
                 # Rank Programs by TYPE Tab
                 with program_tab:
@@ -78,24 +79,25 @@ else:
 
                         # Initialize Program Ranking Dictionary
                         program_ranking = {}
-                        used_program_ranks = set()  # Track used ranks globally for programs
+                        used_program_ranks = set()  # Track used ranks locally for this TYPE
 
+                        program_data = []
                         for program in filtered_programs:
-                            col1, col2 = st.columns([3, 1])  # Adjusted for name and dropdown
-                            with col1:
-                                st.write(program)
-                            with col2:
-                                rank = st.selectbox(
-                                    f"Rank for {program}",
-                                    options=[0] + [i for i in range(1, len(master_sheet['Program'].unique()) + 1) if i not in used_program_ranks],
-                                    key=f"program_{program}_{selected_type}",
-                                )
-                                if rank > 0:
-                                    if rank in used_program_ranks:
-                                        st.warning(f"Duplicate rank detected globally: {rank}")
-                                    else:
-                                        program_ranking[program] = rank
-                                        used_program_ranks.add(rank)
+                            rank = st.selectbox(
+                                f"{program}",
+                                options=[0] + [i for i in range(1, len(filtered_programs) + 1) if i not in used_program_ranks],
+                                key=f"program_{program}_{selected_type}",
+                            )
+                            if rank > 0:
+                                if rank in used_program_ranks:
+                                    st.warning(f"Duplicate rank detected for Programs ({selected_type}): {rank}")
+                                else:
+                                    program_ranking[program] = rank
+                                    used_program_ranks.add(rank)
+                            program_data.append({"Program": program, "Rank": rank})
+
+                        # Display Ranked Programs in a Table
+                        st.write(pd.DataFrame(program_data).sort_values("Rank"))
 
             # Generate Ordered Table by Rankings
             with order_tab:
@@ -108,7 +110,7 @@ else:
 
                     # Filter out zero-ranked states and programs
                     filtered_data = master_sheet[
-                        (master_sheet['State Rank'] > 0) & 
+                        (master_sheet['State Rank'] > 0) | 
                         (master_sheet['Program Rank'] > 0)
                     ]
 
