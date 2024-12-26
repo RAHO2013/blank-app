@@ -9,7 +9,9 @@ MASTER_FILE = "MASTER EXCEL.xlsx"
 if not os.path.exists(MASTER_FILE):
     st.error(f"Master file '{MASTER_FILE}' is missing in the project folder!")
 else:
+    # Load the data and normalize the "State" column
     master_sheet = pd.read_excel(MASTER_FILE, sheet_name='Sheet1')
+    master_sheet['State'] = master_sheet['State'].str.strip().str.upper()  # Normalize state names to uppercase
 
     # Sidebar navigation
     st.sidebar.title("Navigation")
