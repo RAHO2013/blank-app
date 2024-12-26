@@ -28,7 +28,6 @@ else:
 
         # Ensure necessary columns exist
         if {'State', 'Program', 'College Name', 'TYPE'}.issubset(master_sheet.columns):
-
             # Tabs for Ranking
             rank_tab, order_tab = st.tabs(["Rank States and Programs", "Order by Ranking"])
 
@@ -49,7 +48,7 @@ else:
                     for state in unique_states:
                         col1, col2 = st.columns([3, 1])  # Adjusted for name and dropdown
                         with col1:
-                            st.text(state)
+                            st.write(state)
                         with col2:
                             rank = st.selectbox(
                                 f"Rank for {state}",
@@ -58,7 +57,7 @@ else:
                             )
                             if rank > 0:
                                 if rank in used_ranks:
-                                    st.error(f"Duplicate rank detected for States: {rank}")
+                                    st.warning(f"Duplicate rank detected: {rank}")
                                 else:
                                     state_ranking[state] = rank
                                     used_ranks.add(rank)
@@ -81,7 +80,7 @@ else:
                         for program in filtered_programs:
                             col1, col2 = st.columns([3, 1])  # Adjusted for name and dropdown
                             with col1:
-                                st.text(program)
+                                st.write(program)
                             with col2:
                                 rank = st.selectbox(
                                     f"Rank for {program}",
@@ -90,7 +89,7 @@ else:
                                 )
                                 if rank > 0:
                                     if rank in used_ranks:
-                                        st.error(f"Duplicate rank detected globally: {rank}")
+                                        st.warning(f"Duplicate rank detected globally: {rank}")
                                     else:
                                         program_ranking[program] = rank
                                         used_ranks.add(rank)
@@ -128,54 +127,3 @@ else:
                         st.success("Ordered table saved as 'Ordered_Program_State.xlsx'.")
         else:
             st.error("Required columns 'State', 'Program', 'College Name', and 'TYPE' are missing in the master sheet!")
-
-    # Order Comparison Page
-    elif page == "Order Comparison":
-        st.title("Order Comparison Dashboard")
-
-        # Upload Comparison File
-        uploaded_file = st.file_uploader("Upload Comparison File (Excel)", type=["xlsx"])
-        if uploaded_file is not None:
-            comparison_sheet = pd.read_excel(uploaded_file, sheet_name='Sheet1')
-
-            # Create MAIN CODE for Comparison
-            if 'Institute Name' in comparison_sheet.columns and 'Program Name' in comparison_sheet.columns:
-                comparison_sheet['MAIN CODE'] = comparison_sheet['Institute Name'].astype(str) + "_" + comparison_sheet['Program Name'].astype(str)
-                st.success("MAIN CODE created for Comparison file.")
-
-            # Compare MAIN CODEs between Master and Comparison Sheets
-            st.header("MAIN CODE-Based Comparison")
-            master_sheet['MAIN CODE'] = master_sheet['MCC College Code'].astype(str) + "_" + master_sheet['COURSE CODE'].astype(str)
-
-            master_codes = set(master_sheet['MAIN CODE'])
-            comparison_codes = set(comparison_sheet['MAIN CODE'])
-
-            missing_in_comparison = master_codes - comparison_codes
-            missing_in_master = comparison_codes - master_codes
-
-            # Display Results
-            st.subheader("MAIN CODE Missing in Comparison File")
-            if missing_in_comparison:
-                st.write(pd.DataFrame(list(missing_in_comparison), columns=['MAIN CODE']))
-            else:
-                st.write("No MAIN CODEs missing in Comparison File.")
-
-            st.subheader("MAIN CODE Missing in Master File")
-            if missing_in_master:
-                st.write(pd.DataFrame(list(missing_in_master), columns=['MAIN CODE']))
-            else:
-                st.write("No MAIN CODEs missing in Master File.")
-        else:
-            st.info("Please upload a comparison file to proceed.")
-
-    # Fee Checking Page
-    elif page == "Fee Checking":
-        st.title("Fee Checking Dashboard")
-
-        st.header("Fee Comparison")
-        fee_column = "Fees"  # Assuming 'Fees' is the column for fee data
-        if fee_column in master_sheet.columns:
-            fee_comparison = master_sheet.groupby("Program")[fee_column].mean()
-            st.bar_chart(fee_comparison)
-        else:
-            st.warning(f"Fee column '{fee_column}' not found in the master sheet!")
