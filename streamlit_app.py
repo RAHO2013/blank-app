@@ -12,7 +12,10 @@ else:
     # Load the data and normalize the "State" and "TYPE" columns
     master_sheet = pd.read_excel(MASTER_FILE, sheet_name='Sheet1')
     master_sheet['State'] = master_sheet['State'].str.strip().str.upper()  # Normalize state names to uppercase
-    master_sheet['TYPE'] = master_sheet['TYPE'].str.strip().str.upper()    # Normalize TYPE to uppercase
+    master_sheet['TYPE'] = master_sheet['TYPE'].astype(str).str.strip().str.upper()  # Normalize TYPE to uppercase strings
+
+    # Get unique values for TYPE
+    unique_types = sorted(master_sheet['TYPE'].unique())  # Safe sorting after normalization
 
     # Sidebar navigation
     st.sidebar.title("Navigation")
@@ -25,7 +28,6 @@ else:
         # Ensure necessary columns exist
         if {'State', 'Program', 'College Name', 'TYPE'}.issubset(master_sheet.columns):
             unique_states = master_sheet['State'].unique()
-            unique_types = sorted(master_sheet['TYPE'].unique())  # Get unique TYPE values
 
             # Tabs for Ranking and Orders
             tab1, tab2 = st.tabs(["Rank States and Programs", "Order by Ranking"])
