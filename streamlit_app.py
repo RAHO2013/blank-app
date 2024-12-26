@@ -42,15 +42,18 @@ else:
                     state_ranking = {}
                     state_df = pd.DataFrame({'State': unique_states})
                     state_df['Rank'] = state_df['State'].apply(
-                        lambda state: st.number_input(
-                            f"Rank for {state}",
-                            min_value=0,
-                            step=1,
+                        lambda state: st.selectbox(
+                            f"{state}",
+                            options=[0] + [i for i in range(1, len(unique_states) + 1)],
                             key=f"state_{state}",
                         )
                     )
+
+                    # Remove rows with rank 0 for display
+                    display_states = state_df[state_df['Rank'] > 0].sort_values('Rank')
+                    st.write(display_states)
+
                     state_ranking = dict(zip(state_df['State'], state_df['Rank']))
-                    st.write(state_df)
 
                 # Rank Programs by TYPE in Expanders
                 program_ranking = {}
@@ -60,14 +63,17 @@ else:
                         filtered_programs = master_sheet[master_sheet['TYPE'] == type_value]['Program'].unique()
                         program_df = pd.DataFrame({'Program': filtered_programs})
                         program_df['Rank'] = program_df['Program'].apply(
-                            lambda program: st.number_input(
-                                f"Rank for {program} (TYPE: {type_value})",
-                                min_value=0,
-                                step=1,
+                            lambda program: st.selectbox(
+                                f"{program}",
+                                options=[0] + [i for i in range(1, len(filtered_programs) + 1)],
                                 key=f"program_{program}_{type_value}",
                             )
                         )
-                        st.write(program_df)
+
+                        # Remove rows with rank 0 for display
+                        display_programs = program_df[program_df['Rank'] > 0].sort_values('Rank')
+                        st.write(display_programs)
+
                         program_ranking.update(dict(zip(program_df['Program'], program_df['Rank'])))
 
             # Generate Ordered Table by Rankings
@@ -81,7 +87,7 @@ else:
 
                     # Filter out zero-ranked states and programs
                     filtered_data = master_sheet[
-                        (master_sheet['State Rank'] > 0) & 
+                        (master_sheet['State Rank'] > 0) | 
                         (master_sheet['Program Rank'] > 0)
                     ]
 
