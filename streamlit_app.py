@@ -22,9 +22,9 @@ else:
         st.title("Order Creation Dashboard")
 
         # Ensure necessary columns exist
-        if {'State', 'Program', 'College Name'}.issubset(master_sheet.columns):
+        if {'State', 'Program', 'College Name', 'Type'}.issubset(master_sheet.columns):
             unique_states = master_sheet['State'].unique()
-            unique_programs = master_sheet['Program'].unique()
+            unique_types = master_sheet['Type'].unique()
 
             # Tabs for Ranking and Orders
             tab1, tab2, tab3 = st.tabs([
@@ -47,11 +47,16 @@ else:
                             f"{state}", min_value=0, step=1, key=f"state_{state}")
                         state_ranking[state] = rank
 
-                # Rank Programs
+                # Rank Programs Filtered by Type
                 with col2:
-                    st.write("### Rank Programs")
+                    st.write("### Rank Programs by Type")
+                    selected_type = st.selectbox("Select Type", options=unique_types)
+                    
+                    # Filter programs by selected type
+                    filtered_programs = master_sheet[master_sheet['Type'] == selected_type]['Program'].unique()
+
                     program_ranking = {}
-                    for program in unique_programs:
+                    for program in filtered_programs:
                         rank = st.number_input(
                             f"{program}", min_value=0, step=1, key=f"program_{program}")
                         program_ranking[program] = rank
@@ -81,14 +86,14 @@ else:
 
                     # Display Ordered Table with College Name
                     st.write("### Ordered Table")
-                    st.write(ordered_data[['Program', 'State', 'College Name', 'Program Rank', 'State Rank', 'Order Number']])
+                    st.write(ordered_data[['Program', 'State', 'College Name', 'Type', 'Program Rank', 'State Rank', 'Order Number']])
 
                     # Save to file
                     if st.button("Save Ordered Table"):
                         ordered_data.to_excel("Ordered_Program_State.xlsx", index=False)
                         st.success("Ordered table saved as 'Ordered_Program_State.xlsx'.")
         else:
-            st.error("Required columns 'State', 'Program', and 'College Name' are missing in the master sheet!")
+            st.error("Required columns 'State', 'Program', 'College Name', and 'Type' are missing in the master sheet!")
 
     # Order Comparison Page
     elif page == "Order Comparison":
