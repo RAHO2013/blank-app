@@ -29,21 +29,19 @@ else:
         # Ensure necessary columns exist
         if {'State', 'Program', 'College Name', 'TYPE'}.issubset(master_sheet.columns):
 
-            # Tabs for Ranking and Orders
-            tab1, tab2 = st.tabs(["Rank States and Programs", "Order by Ranking"])
+            # Tabs for Ranking
+            rank_tab, order_tab = st.tabs(["Rank States and Programs", "Order by Ranking"])
 
-            # Ranking States and Programs
-            with tab1:
-                st.subheader("Rank States and Programs")
+            with rank_tab:
+                # Sub-tabs for Ranking States and Programs
+                state_tab, program_tab = st.tabs(["Rank States", "Rank Programs"])
 
-                # Side-by-Side Ranking Sections
-                cols = st.columns(len(unique_types) + 1)  # One column for states, and one for each TYPE
+                # Rank States Tab
+                with state_tab:
+                    st.subheader("Rank States")
+                    state_ranking = {}
+                    used_state_ranks = set()  # Track used ranks for states
 
-                # Rank States
-                state_ranking = {}
-                used_state_ranks = set()  # Track used ranks for states
-                with cols[0]:
-                    st.write("### Rank States")
                     for state in unique_states:
                         rank = st.selectbox(
                             f"{state}",
@@ -57,13 +55,16 @@ else:
                                 state_ranking[state] = rank
                                 used_state_ranks.add(rank)
 
-                # Rank Programs by TYPE
-                program_ranking = {}
-                for i, type_value in enumerate(unique_types):
-                    used_program_ranks = set()  # Track used ranks for programs in this TYPE
-                    with cols[i + 1]:
-                        st.write(f"### Rank Programs ({type_value})")
+                # Rank Programs Tab
+                with program_tab:
+                    st.subheader("Rank Programs by TYPE")
+
+                    program_ranking = {}
+                    for type_value in unique_types:
+                        st.write(f"### {type_value}")
                         filtered_programs = sorted(master_sheet[master_sheet['TYPE'] == type_value]['Program'].unique())
+                        used_program_ranks = set()  # Track used ranks for programs in this TYPE
+
                         for program in filtered_programs:
                             rank = st.selectbox(
                                 f"{program}",
@@ -78,7 +79,7 @@ else:
                                     used_program_ranks.add(rank)
 
             # Generate Ordered Table by Rankings
-            with tab2:
+            with order_tab:
                 st.subheader("Generate Order by Rankings")
 
                 if st.button("Generate Order Table"):
