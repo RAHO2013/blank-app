@@ -15,8 +15,8 @@ else:
     master_sheet['TYPE'] = master_sheet['TYPE'].astype(str).str.strip().str.upper()  # Normalize TYPE to uppercase strings
 
     # Get unique values for TYPE
-    unique_types = sorted(master_sheet['TYPE'].unique())  # Safe sorting after normalization
-    unique_states = master_sheet['State'].unique()
+    unique_types = sorted(master_sheet['TYPE'].unique())
+    unique_states = sorted(master_sheet['State'].unique())
 
     # Sidebar navigation
     st.sidebar.title("Navigation")
@@ -40,14 +40,21 @@ else:
                 with st.expander("Rank States"):
                     st.write("### Rank States")
                     state_ranking = {}
+                    used_state_ranks = set()  # Track used state ranks
+
                     state_df = pd.DataFrame({'State': unique_states})
                     state_df['Rank'] = state_df['State'].apply(
                         lambda state: st.selectbox(
                             f"{state}",
-                            options=[0] + [i for i in range(1, len(unique_states) + 1)],
+                            options=[0] + [i for i in range(1, len(unique_states) + 1) if i not in used_state_ranks],
                             key=f"state_{state}",
                         )
                     )
+
+                    # Update the set with newly assigned ranks
+                    for state, rank in zip(state_df['State'], state_df['Rank']):
+                        if rank > 0:
+                            used_state_ranks.add(rank)
 
                     # Remove rows with rank 0 for display
                     display_states = state_df[state_df['Rank'] > 0].sort_values('Rank')
@@ -60,15 +67,23 @@ else:
                 for type_value in unique_types:
                     with st.expander(f"Rank Programs for TYPE: {type_value}"):
                         st.write(f"### Programs in TYPE: {type_value}")
-                        filtered_programs = master_sheet[master_sheet['TYPE'] == type_value]['Program'].unique()
+                        filtered_programs = sorted(master_sheet[master_sheet['TYPE'] == type_value]['Program'].unique())
+
+                        used_program_ranks = set()  # Track used ranks for programs in this TYPE
+
                         program_df = pd.DataFrame({'Program': filtered_programs})
                         program_df['Rank'] = program_df['Program'].apply(
                             lambda program: st.selectbox(
                                 f"{program}",
-                                options=[0] + [i for i in range(1, len(filtered_programs) + 1)],
+                                options=[0] + [i for i in range(1, len(filtered_programs) + 1) if i not in used_program_ranks],
                                 key=f"program_{program}_{type_value}",
                             )
                         )
+
+                        # Update the set with newly assigned ranks
+                        for program, rank in zip(program_df['Program'], program_df['Rank']):
+                            if rank > 0:
+                                used_program_ranks.add(rank)
 
                         # Remove rows with rank 0 for display
                         display_programs = program_df[program_df['Rank'] > 0].sort_values('Rank')
