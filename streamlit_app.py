@@ -9,9 +9,10 @@ MASTER_FILE = "MASTER EXCEL.xlsx"
 if not os.path.exists(MASTER_FILE):
     st.error(f"Master file '{MASTER_FILE}' is missing in the project folder!")
 else:
-    # Load the data and normalize the "State" column
+    # Load the data and normalize the "State" and "TYPE" columns
     master_sheet = pd.read_excel(MASTER_FILE, sheet_name='Sheet1')
     master_sheet['State'] = master_sheet['State'].str.strip().str.upper()  # Normalize state names to uppercase
+    master_sheet['TYPE'] = master_sheet['TYPE'].str.strip().str.upper()    # Normalize TYPE to uppercase
 
     # Sidebar navigation
     st.sidebar.title("Navigation")
@@ -24,45 +25,43 @@ else:
         # Ensure necessary columns exist
         if {'State', 'Program', 'College Name', 'TYPE'}.issubset(master_sheet.columns):
             unique_states = master_sheet['State'].unique()
-            unique_types = master_sheet['TYPE'].unique()
+            unique_types = sorted(master_sheet['TYPE'].unique())  # Get unique TYPE values
 
             # Tabs for Ranking and Orders
-            tab1, tab2, tab3 = st.tabs([
-                "Ranking States", 
-                "Ranking Programs", 
-                "Order by Ranking of Programs and States"
-            ])
+            tab1, tab2 = st.tabs(["Rank States and Programs", "Order by Ranking"])
 
-            # Ranking States and Programs (Side-by-Side)
+            # Ranking States and Programs
             with tab1:
                 st.subheader("Rank States and Programs")
-                col1, col2 = st.columns(2)
 
                 # Rank States
-                with col1:
-                    st.write("### Rank States")
-                    state_ranking = {}
-                    for state in unique_states:
-                        rank = st.number_input(
-                            f"{state}", min_value=0, step=1, key=f"state_{state}")
-                        state_ranking[state] = rank
+                st.write("### Rank States")
+                state_ranking = {}
+                state_df = pd.DataFrame({'State': unique_states})
+                state_df['Rank'] = state_df['State'].apply(
+                    lambda state: st.number_input(f"Rank for {state}", min_value=0, step=1, key=f"state_{state}")
+                )
+                state_ranking = dict(zip(state_df['State'], state_df['Rank']))
 
-                # Rank Programs Filtered by TYPE
-                with col2:
-                    st.write("### Rank Programs by TYPE")
-                    selected_type = st.selectbox("Select TYPE", options=unique_types)
-                    
-                    # Filter programs by selected TYPE
-                    filtered_programs = master_sheet[master_sheet['TYPE'] == selected_type]['Program'].unique()
-
-                    program_ranking = {}
-                    for program in filtered_programs:
-                        rank = st.number_input(
-                            f"{program}", min_value=0, step=1, key=f"program_{program}")
-                        program_ranking[program] = rank
+                # Rank Programs by TYPE
+                program_ranking = {}
+                for type_value in unique_types:
+                    st.write(f"### Rank Programs for TYPE: {type_value}")
+                    filtered_programs = master_sheet[master_sheet['TYPE'] == type_value]['Program'].unique()
+                    program_df = pd.DataFrame({'Program': filtered_programs})
+                    program_df['Rank'] = program_df['Program'].apply(
+                        lambda program: st.number_input(
+                            f"Rank for {program} (TYPE: {type_value})", 
+                            min_value=0, 
+                            step=1, 
+                            key=f"program_{program}_{type_value}"
+                        )
+                    )
+                    st.write(program_df)
+                    program_ranking.update(dict(zip(program_df['Program'], program_df['Rank'])))
 
             # Generate Ordered Table by Rankings
-            with tab3:
+            with tab2:
                 st.subheader("Generate Order by Rankings")
 
                 if st.button("Generate Order Table"):
