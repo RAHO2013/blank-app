@@ -35,14 +35,14 @@ else:
             with tab1:
                 st.subheader("Rank States and Programs")
 
-                # Compact State Ranking Section
+                # Rank States in Expander
                 with st.expander("Rank States"):
                     st.write("### Rank States")
 
                     state_ranking = {}
                     used_state_ranks = set()  # Track used ranks for states
 
-                    # Prepare compact layout for state ranking
+                    # Rank States with dropdowns
                     state_data = []
                     for state in unique_states:
                         col1, col2 = st.columns([3, 1])  # Compact columns
@@ -50,7 +50,7 @@ else:
                             st.write(state)
                         with col2:
                             rank = st.selectbox(
-                                f"Rank for {state}",
+                                "",
                                 options=[0] + [i for i in range(1, len(unique_states) + 1) if i not in used_state_ranks],
                                 key=f"state_{state}",
                             )
@@ -65,7 +65,7 @@ else:
 
                     state_ranking = dict(zip(state_df['State'], state_df['Rank']))
 
-                # Compact Program Ranking Section by TYPE
+                # Rank Programs by TYPE in Expanders
                 program_ranking = {}
                 for type_value in unique_types:
                     with st.expander(f"Rank Programs for TYPE: {type_value}"):
@@ -74,15 +74,15 @@ else:
 
                         used_program_ranks = set()  # Track used ranks for programs
 
-                        # Prepare compact layout for program ranking
+                        # Rank Programs with dropdowns
                         program_data = []
                         for program in filtered_programs:
-                            col1, col2 = st.columns([3, 1])  # Compact columns
+                            col1, col2 = st.columns([3, 1])
                             with col1:
                                 st.write(program)
                             with col2:
                                 rank = st.selectbox(
-                                    f"Rank for {program}",
+                                    "",
                                     options=[0] + [i for i in range(1, len(filtered_programs) + 1) if i not in used_program_ranks],
                                     key=f"program_{program}_{type_value}",
                                 )
@@ -112,7 +112,7 @@ else:
 
                     # Filter out zero-ranked states and programs
                     filtered_data = master_sheet[
-                        (master_sheet['State Rank'] > 0) | 
+                        (master_sheet['State Rank'] > 0) & 
                         (master_sheet['Program Rank'] > 0)
                     ]
 
