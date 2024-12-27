@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import os
 
+st.title("Team Eternals")
 # Constants
 MASTER_FILE = "MASTER EXCEL.xlsx"
 
