@@ -110,27 +110,35 @@ else:
                         dict(zip(program_df['Program'], program_df['Rank']))
                     ).fillna(0)
 
+                    # Debugging: Show intermediate mapping results
+                    st.write("### Debug: State and Program Rankings in Master Sheet")
+                    st.write(master_sheet[['State', 'Program', 'State Rank', 'Program Rank']])
+
                     # Filter out zero-ranked states and programs
                     filtered_data = master_sheet[
                         (master_sheet['State Rank'] > 0) & 
-                        (master_sheet['Program Rank'] > 0)
+                        (master_sheet['Program Rank'] > 0)  # Ensure both ranks > 0
                     ]
 
-                    # Sort by Program Rank and then State Rank
-                    ordered_data = filtered_data.sort_values(
-                        by=['Program Rank', 'State Rank']
-                    ).reset_index(drop=True)
+                    # Check for empty filtered data
+                    if filtered_data.empty:
+                        st.warning("No rows to display! Ensure you have assigned rankings for both States and Programs.")
+                    else:
+                        # Sort by Program Rank and then State Rank
+                        ordered_data = filtered_data.sort_values(
+                            by=['Program Rank', 'State Rank']
+                        ).reset_index(drop=True)
 
-                    # Create Order Number
-                    ordered_data['Order Number'] = range(1, len(ordered_data) + 1)
+                        # Create Order Number
+                        ordered_data['Order Number'] = range(1, len(ordered_data) + 1)
 
-                    # Display Ordered Table with College Name
-                    st.write("### Ordered Table")
-                    st.write(ordered_data[['Program', 'State', 'College Name', 'TYPE', 'Program Rank', 'State Rank', 'Order Number']])
+                        # Display Ordered Table with College Name
+                        st.write("### Ordered Table")
+                        st.write(ordered_data[['Program', 'State', 'College Name', 'TYPE', 'Program Rank', 'State Rank', 'Order Number']])
 
-                    # Save to file
-                    if st.button("Save Ordered Table"):
-                        ordered_data.to_excel("Ordered_Program_State.xlsx", index=False)
-                        st.success("Ordered table saved as 'Ordered_Program_State.xlsx'.")
+                        # Save to file
+                        if st.button("Save Ordered Table"):
+                            ordered_data.to_excel("Ordered_Program_State.xlsx", index=False)
+                            st.success("Ordered table saved as 'Ordered_Program_State.xlsx'.")
         else:
             st.error("Required columns 'State', 'Program', 'College Name', and 'TYPE' are missing in the master sheet!")
