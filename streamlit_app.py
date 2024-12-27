@@ -23,7 +23,7 @@ else:
 
     # Sidebar navigation
     st.sidebar.title("Navigation")
-    page = st.sidebar.radio("Select a page:", ["Order Creation", "Order Comparison", "Fee Checking"])
+    page = st.sidebar.radio("Select a page:", ["Order Creation", "Order Creation with Excel", "Order Comparison", "Fee Checking"])
 
     # Order Creation Page
     if page == "Order Creation":
@@ -140,3 +140,65 @@ else:
                         st.dataframe(ordered_data[selected_columns])
                     else:
                         st.warning("Please select at least one column to display the table.")
+
+    # Order Creation with Excel
+    elif page == "Order Creation with Excel":
+        st.title("Order Creation with Excel")
+
+        uploaded_file = st.file_uploader("Upload Excel File", type=["xlsx"])
+        if uploaded_file:
+            # Load uploaded Excel
+            uploaded_data = pd.read_excel(uploaded_file)
+
+            # Check for required columns
+            if {'State', 'State Rank', 'Program', 'Program Rank'}.issubset(uploaded_data.columns):
+                st.success("Excel file uploaded successfully!")
+
+                # Apply rankings directly
+                master_sheet['State Rank'] = master_sheet['State'].map(uploaded_data.set_index('State')['State Rank']).fillna(0)
+                master_sheet['Program Rank'] = master_sheet['Program'].map(uploaded_data.set_index('Program')['Program Rank']).fillna(0)
+
+                # Generate ordered table
+                ordered_data = master_sheet.query("`State Rank` > 0 and `Program Rank` > 0").sort_values(
+                    by=['Program Rank', 'State Rank']
+                ).reset_index(drop=True)
+                ordered_data['Order Number'] = range(1, len(ordered_data) + 1)
+
+                # Display ordered table
+                st.write("### Ordered Table from Uploaded Excel")
+                st.dataframe(ordered_data[['MAIN CODE', 'Program', 'TYPE', 'State', 'College Name', 'Program Rank', 'State Rank', 'Order Number']])
+            else:
+                st.error("The uploaded file must contain 'State', 'State Rank', 'Program', and 'Program Rank' columns.")
+        else:
+            st.info("Please upload an Excel file to proceed.")
+
+    # Order Comparison Page
+    elif page == "Order Comparison":
+        st.title("Order Comparison Dashboard")
+        uploaded_file = st.file_uploader("Upload Comparison File (Excel)", type=["xlsx"])
+        if uploaded_file:
+            comparison_sheet = pd.read_excel(uploaded_file, sheet_name='Sheet1')
+            if 'Institute Name' in comparison_sheet.columns and 'Program Name' in comparison_sheet.columns:
+                comparison_sheet['MAIN CODE'] = comparison_sheet['Institute Name'].astype(str) + "_" + comparison_sheet['Program Name'].astype(str)
+                st.success("MAIN CODE created for Comparison file.")
+                master_sheet['MAIN CODE'] = master_sheet['MCC College Code'].astype(str) + "_" + master_sheet['COURSE CODE'].astype(str)
+                missing_in_comparison = set(master_sheet['MAIN CODE']) - set(comparison_sheet['MAIN CODE'])
+                missing_in_master = set(comparison_sheet['MAIN CODE']) - set(master_sheet['MAIN CODE'])
+
+                st.write("### MAIN CODE Missing in Comparison File")
+                missing_comparison_df = pd.DataFrame(list(missing_in_comparison), columns=["MAIN CODE"])
+                missing_comparison_df.index = range(1, len(missing_comparison_df) + 1)  # Reset index to start from 1
+                st.dataframe(missing_comparison_df)
+
+                st.write("### MAIN CODE Missing in Master File")
+                missing_master_df = pd.DataFrame(list(missing_in_master), columns=["MAIN CODE"])
+                missing_master_df.index = range(1, len(missing_master_df) + 1)  # Reset index to start from 1
+                st.dataframe(missing_master_df)
+
+    # Fee Checking Page
+    elif page == "Fee Checking":
+        st.title("Fee Checking Dashboard")
+        if 'Fees' in master_sheet.columns:
+            st.bar_chart(master_sheet.groupby('Program')['Fees'].mean())
+        else:
+            st.warning("The column 'Fees' is missing in the master sheet.")
