@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import os
 
-st.title(ETERNALS)
+st.title("ETERNALS")
 # Constants
 MASTER_FILE = "MASTER EXCEL.xlsx"
 
