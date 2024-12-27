@@ -41,6 +41,7 @@ else:
                 st.subheader("Rank States")
                 state_ranking = {}
                 used_state_ranks = set()  # Track used ranks
+                state_data = []  # Store state and rank pairs
 
                 for state in unique_states:
                     col1, col2 = st.columns([3, 1])  # Compact layout
@@ -55,6 +56,12 @@ else:
                         if rank > 0:
                             used_state_ranks.add(rank)
                         state_ranking[state] = rank
+                        state_data.append({"State": state, "Rank": rank})
+
+                # Display the table showing entered rankings
+                state_df = pd.DataFrame(state_data)
+                st.write("### Entered State Rankings")
+                st.write(state_df[state_df['Rank'] > 0].sort_values('Rank'))  # Only show non-zero ranks
 
             # Ranking Programs by TYPE
             with tab2:
@@ -65,6 +72,7 @@ else:
                     filtered_programs = master_sheet[master_sheet['TYPE'] == type_value]['Program'].unique()
 
                     used_program_ranks = set()  # Track used ranks for programs
+                    program_data = []  # Store program and rank pairs
 
                     for program in filtered_programs:
                         col1, col2 = st.columns([3, 1])  # Compact layout
@@ -79,6 +87,12 @@ else:
                             if rank > 0:
                                 used_program_ranks.add(rank)
                             program_ranking[program] = rank
+                            program_data.append({"Program": program, "Rank": rank})
+
+                    # Display the table showing entered rankings
+                    program_df = pd.DataFrame(program_data)
+                    st.write(f"### Entered Program Rankings for TYPE: {type_value}")
+                    st.write(program_df[program_df['Rank'] > 0].sort_values('Rank'))  # Only show non-zero ranks
 
             # Generate Ordered Table by Rankings
             with tab3:
