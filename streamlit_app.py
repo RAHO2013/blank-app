@@ -63,8 +63,9 @@ else:
 
                 with rank_tab2:
                     if ranked_data:
-                        # Convert to DataFrame and display the entered rankings
+                        # Convert to DataFrame and reset the index to start from 1
                         state_df = pd.DataFrame(ranked_data).sort_values("Rank")
+                        state_df.index = range(1, len(state_df) + 1)  # Reset index to start from 1
                         st.write("### Entered State Rankings")
                         st.dataframe(state_df)
                     else:
@@ -96,8 +97,9 @@ else:
 
                 with rank_tab2:
                     if ranked_data:
-                        # Convert to DataFrame and display the entered rankings
+                        # Convert to DataFrame and reset the index to start from 1
                         program_df = pd.DataFrame(ranked_data).sort_values("Rank")
+                        program_df.index = range(1, len(program_df) + 1)  # Reset index to start from 1
                         st.write("### Entered Program Rankings")
                         st.dataframe(program_df)
                     else:
@@ -120,6 +122,7 @@ else:
                     ordered_data['Order Number'] = range(1, len(ordered_data) + 1)
 
                     st.write("### Ordered Table")
+                    ordered_data.index = range(1, len(ordered_data) + 1)  # Reset index to start from 1
                     st.dataframe(ordered_data[['MAIN CODE', 'Program', 'TYPE', 'State', 'College Name', 'Program Rank', 'State Rank', 'Order Number']])
 
                     # Save and download
@@ -147,9 +150,14 @@ else:
                 missing_in_master = set(comparison_sheet['MAIN CODE']) - set(master_sheet['MAIN CODE'])
 
                 st.write("### MAIN CODE Missing in Comparison File")
-                st.dataframe(pd.DataFrame(list(missing_in_comparison), columns=["MAIN CODE"]))
+                missing_comparison_df = pd.DataFrame(list(missing_in_comparison), columns=["MAIN CODE"])
+                missing_comparison_df.index = range(1, len(missing_comparison_df) + 1)  # Reset index to start from 1
+                st.dataframe(missing_comparison_df)
+
                 st.write("### MAIN CODE Missing in Master File")
-                st.dataframe(pd.DataFrame(list(missing_in_master), columns=["MAIN CODE"]))
+                missing_master_df = pd.DataFrame(list(missing_in_master), columns=["MAIN CODE"])
+                missing_master_df.index = range(1, len(missing_master_df) + 1)  # Reset index to start from 1
+                st.dataframe(missing_master_df)
 
     # Fee Checking Page
     elif page == "Fee Checking":
