@@ -23,10 +23,33 @@ else:
 
     # Sidebar navigation
     st.sidebar.title("Navigation")
-    page = st.sidebar.radio("Select a page:", ["Order Creation", "Order Comparison", "Fee Checking"])
+    page = st.sidebar.radio("Select a page:", ["Column Selection", "Order Creation", "Order Comparison", "Fee Checking"])
+
+    # Column Selection Page
+    if page == "Column Selection":
+        st.title("Column Selection")
+
+        # Display all available columns
+        st.write("### Available Columns in Master Excel")
+        st.dataframe(master_sheet.head())
+
+        # Allow users to select columns
+        st.write("### Select Columns to Include")
+        selected_columns = st.multiselect(
+            "Select columns to include:",
+            list(master_sheet.columns),
+            default=['MAIN CODE', 'Program', 'TYPE', 'State', 'College Name', 'COURSE CODE']
+        )
+
+        # Display the selected columns
+        if selected_columns:
+            st.write("### Selected Columns from Master Excel")
+            st.dataframe(master_sheet[selected_columns].head())
+        else:
+            st.warning("Please select at least one column to include.")
 
     # Order Creation Page
-    if page == "Order Creation":
+    elif page == "Order Creation":
         st.title("Order Creation Dashboard")
 
         # Ensure necessary columns exist
@@ -37,7 +60,7 @@ else:
             tab1, tab2, tab3 = st.tabs([
                 "Ranking States",
                 "Ranking Programs by Type",
-                "Order by Ranking of Programs and States"
+                "Generate Order Table"
             ])
 
             # Ranking States
@@ -105,7 +128,7 @@ else:
                     else:
                         st.write("No programs ranked yet. Please assign ranks to display the table.")
 
-            # Generate Ordered Table by Rankings
+            # Generate Ordered Table
             with tab3:
                 st.subheader("Generate Order by Rankings")
 
@@ -122,30 +145,8 @@ else:
                     ).reset_index(drop=True)
                     ordered_data['Order Number'] = range(1, len(ordered_data) + 1)
 
-                    # Store default columns and allow user to select
-                    if "selected_columns" not in st.session_state:
-                        st.session_state.selected_columns = ['MAIN CODE', 'Program', 'TYPE', 'State', 'College Name', 'Program Rank', 'State Rank', 'Order Number']
-
-                    # Dynamic column selection
-                    st.write("### Select Columns to Display in the Ordered Table")
-                    selected_columns = st.multiselect(
-                        "Select columns:",
-                        list(ordered_data.columns),
-                        default=st.session_state.selected_columns
-                    )
-
-                    # Update session state only if selection changes
-                    if selected_columns != st.session_state.selected_columns:
-                        st.session_state.selected_columns = selected_columns
-
-                    # Display the selected columns
-                    if selected_columns:
-                        st.write("### Ordered Table")
-                        ordered_data.index = range(1, len(ordered_data) + 1)  # Reset index to start from 1
-                        st.dataframe(ordered_data[selected_columns])
-                    else:
-                        st.warning("Please select at least one column to display the table.")
-
+                    st.write("### Ordered Table")
+                    st.dataframe(ordered_data)
         else:
             st.error("Required columns 'State', 'Program', 'College Name', and 'TYPE' are missing in the master sheet!")
 
