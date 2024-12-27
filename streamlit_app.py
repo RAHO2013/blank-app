@@ -43,7 +43,7 @@ else:
                 used_state_ranks = set()  # Track used ranks
                 state_data = []  # Store state and rank pairs
 
-                with st.expander("Expand/Collapse State Ranking"):
+                with st.expander("Expand/Collapse State Ranking", expanded=True):
                     for state in unique_states:
                         col1, col2 = st.columns([3, 1])  # Compact layout
                         with col1:
@@ -61,22 +61,23 @@ else:
 
                 # Display the table showing entered rankings
                 state_df = pd.DataFrame(state_data)
-                with st.expander("Expand/Collapse Entered State Rankings Table"):
-                    st.write("### Entered State Rankings")
-                    st.write(state_df[state_df['Rank'] > 0].sort_values('Rank'))  # Only show non-zero ranks
+                st.write("### Entered State Rankings")
+                st.write(state_df[state_df['Rank'] > 0].sort_values('Rank'))  # Only show non-zero ranks
 
             # Ranking Programs by TYPE
             with tab2:
                 st.subheader("Rank Programs by Type")
                 program_ranking = {}
 
+                # Loop through each type and display expander
                 for type_value in unique_types:
                     filtered_programs = master_sheet[master_sheet['TYPE'] == type_value]['Program'].unique()
 
                     used_program_ranks = set()  # Track used ranks for programs
                     program_data = []  # Store program and rank pairs
 
-                    with st.expander(f"Expand/Collapse Program Ranking for TYPE: {type_value}"):
+                    # Each TYPE in its own expander
+                    with st.expander(f"Expand/Collapse Program Ranking for TYPE: {type_value}", expanded=False):
                         for program in filtered_programs:
                             col1, col2 = st.columns([3, 1])  # Compact layout
                             with col1:
@@ -94,9 +95,8 @@ else:
 
                         # Display the table showing entered rankings
                         program_df = pd.DataFrame(program_data)
-                        with st.expander(f"Expand/Collapse Entered Program Rankings Table for TYPE: {type_value}"):
-                            st.write(f"### Entered Program Rankings for TYPE: {type_value}")
-                            st.write(program_df[program_df['Rank'] > 0].sort_values('Rank'))  # Only show non-zero ranks
+                        st.write(f"### Entered Program Rankings for TYPE: {type_value}")
+                        st.write(program_df[program_df['Rank'] > 0].sort_values('Rank'))  # Only show non-zero ranks
 
             # Generate Ordered Table by Rankings
             with tab3:
