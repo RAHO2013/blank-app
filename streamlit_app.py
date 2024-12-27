@@ -96,10 +96,14 @@ else:
                             program_ranking[(program, program_type)] = rank
                             ranked_data.append({"Program": program, "TYPE": program_type, "Rank": rank})
 
-                # Convert to DataFrame and display the entered rankings
-                program_df = pd.DataFrame(ranked_data).sort_values("Rank")
-                st.write("### Entered Program Rankings")
-                st.dataframe(program_df)
+                # Check if ranked_data is populated
+                if ranked_data:
+                    # Convert to DataFrame and display the entered rankings
+                    program_df = pd.DataFrame(ranked_data).sort_values("Rank")
+                    st.write("### Entered Program Rankings")
+                    st.dataframe(program_df)
+                else:
+                    st.write("No programs ranked yet. Please assign ranks to display the table.")
 
             # Generate Ordered Table by Rankings
             with tab3:
