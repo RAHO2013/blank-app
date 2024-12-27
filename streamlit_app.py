@@ -3,30 +3,25 @@ import pandas as pd
 import os
 
 st.title("ETERNALS")
-
 # Constants
 MASTER_FILE = "MASTER EXCEL.xlsx"
 
-@st.cache_data
-def load_master_file():
-    """Load and normalize the master Excel file."""
-    if os.path.exists(MASTER_FILE):
-        data = pd.read_excel(MASTER_FILE, sheet_name='Sheet1')
-        data['State'] = data['State'].str.strip().str.upper()
-        data['Program'] = data['Program'].str.strip().str.upper()
-        data['TYPE'] = data['TYPE'].astype(str).str.strip().str.upper()
-        if {'MCC College Code', 'COURSE CODE'}.issubset(data.columns):
-            data['MAIN CODE'] = data['MCC College Code'].astype(str) + "_" + data['COURSE CODE'].astype(str)
-        return data
-    else:
-        return None
-
-# Load the master sheet
-master_sheet = load_master_file()
-
-if master_sheet is None:
+# Load MASTER EXCEL file
+if not os.path.exists(MASTER_FILE):
     st.error(f"Master file '{MASTER_FILE}' is missing in the project folder!")
 else:
+    # Load the master sheet
+    master_sheet = pd.read_excel(MASTER_FILE, sheet_name='Sheet1')
+
+    # Normalize `State`, `Program`, and `TYPE` columns
+    master_sheet['State'] = master_sheet['State'].str.strip().str.upper()
+    master_sheet['Program'] = master_sheet['Program'].str.strip().str.upper()
+    master_sheet['TYPE'] = master_sheet['TYPE'].astype(str).str.strip().str.upper()
+
+    # Create MAIN CODE column
+    if {'MCC College Code', 'COURSE CODE'}.issubset(master_sheet.columns):
+        master_sheet['MAIN CODE'] = master_sheet['MCC College Code'].astype(str) + "_" + master_sheet['COURSE CODE'].astype(str)
+
     # Detect numeric columns
     numeric_columns = master_sheet.select_dtypes(include=['int64', 'float64']).columns
 
@@ -38,9 +33,13 @@ else:
     if page == "Master Data":
         st.title("Master Data Overview")
 
-        # Display the master sheet with formatted numeric columns
-        st.write("### Master Sheet (with Numeric Columns Formatted)")
+        # Display numeric columns without commas
+        st.write("### Numeric Columns Formatted Correctly")
         st.dataframe(master_sheet.style.format({col: "{:.0f}" for col in numeric_columns}))
+
+        # Display full data
+        st.write("### Full Master Sheet")
+        st.dataframe(master_sheet)
 
     # Order Creation with Excel
     elif page == "Order Creation with Excel":
@@ -66,7 +65,7 @@ else:
                     st.success("Program data loaded successfully!")
 
                 # Map state and program ranks
-                master_sheet['State Rank'] = master_sheet['State'].map(state_data.set_index('State')['State Rank']).fillna(0).astype(int)
+                master_sheet['State Rank'] = master_sheet['State'].map(state_data.set_index('State')['State Rank']).fillna(0)
                 master_sheet['Program Rank'] = master_sheet.apply(
                     lambda x: program_data.loc[
                         (program_data['Program'].str.upper() == x['Program'].upper()) &
@@ -75,7 +74,7 @@ else:
                     ].values[0] if ((program_data['Program'].str.upper() == x['Program'].upper()) &
                                     (program_data['Program Type'].str.upper() == x['TYPE'].upper())).any() else 0,
                     axis=1
-                ).astype(int)
+                )
 
                 # Generate ordered table
                 ordered_data = master_sheet.query("`State Rank` > 0 and `Program Rank` > 0").sort_values(
@@ -203,10 +202,10 @@ else:
                 # Generate Order Table button
                 if st.button("Generate Order Table"):
                     # Apply rankings to the master sheet
-                    master_sheet['State Rank'] = pd.Series(state_ranking).fillna(0).astype(int)
+                    master_sheet['State Rank'] = master_sheet['State'].map(state_ranking).fillna(0)
                     master_sheet['Program Rank'] = master_sheet.apply(
                         lambda x: program_ranking.get((x['Program'], x['TYPE']), 0), axis=1
-                    ).astype(int)
+                    )
 
                     # Filter and sort data
                     ordered_data = master_sheet.query("`State Rank` > 0 and `Program Rank` > 0").sort_values(
