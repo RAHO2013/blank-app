@@ -33,25 +33,41 @@ else:
 
             # Ranking States and Programs (Side-by-Side)
             with tab1:
-                st.subheader("Rank States and Programs")
-                col1, col2 = st.columns(2)
+                st.subheader("Rank States")
+                state_ranking = {}
+                used_state_ranks = set()  # Track used ranks
 
-                # Rank States
-                with col1:
-                    st.write("### Rank States")
-                    state_ranking = {}
-                    for state in unique_states:
-                        rank = st.number_input(
-                            f"{state}", min_value=0, step=1, key=f"state_{state}")
+                for state in unique_states:
+                    col1, col2 = st.columns([3, 1])  # Compact layout
+                    with col1:
+                        st.write(state)
+                    with col2:
+                        rank = st.selectbox(
+                            "",
+                            options=[0] + [i for i in range(1, len(unique_states) + 1) if i not in used_state_ranks],
+                            key=f"state_{state}",
+                        )
+                        if rank > 0:
+                            used_state_ranks.add(rank)
                         state_ranking[state] = rank
 
-                # Rank Programs
-                with col2:
-                    st.write("### Rank Programs")
-                    program_ranking = {}
-                    for program in unique_programs:
-                        rank = st.number_input(
-                            f"{program}", min_value=0, step=1, key=f"program_{program}")
+            with tab2:
+                st.subheader("Rank Programs")
+                program_ranking = {}
+                used_program_ranks = set()  # Track used ranks for programs
+
+                for program in unique_programs:
+                    col1, col2 = st.columns([3, 1])  # Compact layout
+                    with col1:
+                        st.write(program)
+                    with col2:
+                        rank = st.selectbox(
+                            "",
+                            options=[0] + [i for i in range(1, len(unique_programs) + 1) if i not in used_program_ranks],
+                            key=f"program_{program}",
+                        )
+                        if rank > 0:
+                            used_program_ranks.add(rank)
                         program_ranking[program] = rank
 
             # Generate Ordered Table by Rankings
