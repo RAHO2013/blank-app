@@ -17,6 +17,10 @@ else:
     master_sheet['Program'] = master_sheet['Program'].str.strip().str.upper()
     master_sheet['TYPE'] = master_sheet['TYPE'].astype(str).str.strip().str.upper()
 
+    # Create MAIN CODE column
+    if {'MCC College Code', 'COURSE CODE'}.issubset(master_sheet.columns):
+        master_sheet['MAIN CODE'] = master_sheet['MCC College Code'].astype(str) + "_" + master_sheet['COURSE CODE'].astype(str)
+
     # Sidebar navigation
     st.sidebar.title("Navigation")
     page = st.sidebar.radio("Select a page:", ["Order Creation", "Order Comparison", "Fee Checking"])
@@ -52,7 +56,6 @@ else:
         # Ensure necessary columns exist
         if {'State', 'Program', 'College Name', 'TYPE'}.issubset(master_sheet.columns):
             unique_states = master_sheet['State'].unique()
-            unique_types = master_sheet['TYPE'].unique()
 
             # Tabs for Ranking and Orders
             tab1, tab2, tab3 = st.tabs([
@@ -71,13 +74,10 @@ else:
             # Ranking Programs by TYPE
             with tab2:
                 st.subheader("Rank Programs by Type")
-                program_ranking = {}
-                for type_value in unique_types:
-                    st.write(f"### Ranking for TYPE: {type_value}")
-                    filtered_programs = master_sheet[master_sheet['TYPE'] == type_value]['Program'].unique()
-                    program_ranking[type_value], program_df = rank_items(filtered_programs, f"program_{type_value}")
-                    st.write(f"### Entered Program Rankings for TYPE: {type_value}")
-                    st.dataframe(program_df)
+                all_programs = master_sheet[['TYPE', 'Program']].drop_duplicates()
+                program_ranking, program_df = rank_items(all_programs['Program'], "program")
+                st.write("### Entered Program Rankings")
+                st.dataframe(program_df)
 
             # Generate Ordered Table by Rankings
             with tab3:
@@ -85,9 +85,7 @@ else:
                 if st.button("Generate Order Table"):
                     # Apply rankings to the master sheet
                     master_sheet['State Rank'] = master_sheet['State'].map(state_ranking).fillna(0)
-                    master_sheet['Program Rank'] = master_sheet['Program'].map(
-                        lambda x: next((program_ranking[t].get(x, 0) for t in unique_types if x in program_ranking[t]), 0)
-                    ).fillna(0)
+                    master_sheet['Program Rank'] = master_sheet['Program'].map(program_ranking).fillna(0)
 
                     # Filter and sort data
                     ordered_data = master_sheet.query("`State Rank` > 0 and `Program Rank` > 0").sort_values(
@@ -96,7 +94,7 @@ else:
                     ordered_data['Order Number'] = range(1, len(ordered_data) + 1)
 
                     st.write("### Ordered Table")
-                    st.dataframe(ordered_data[['Program', 'State', 'College Name', 'TYPE', 'Program Rank', 'State Rank', 'Order Number']])
+                    st.dataframe(ordered_data[['MAIN CODE', 'Program', 'State', 'College Name', 'TYPE', 'Program Rank', 'State Rank', 'Order Number']])
 
                     # Save and download
                     if st.button("Save and Download Ordered Table"):
