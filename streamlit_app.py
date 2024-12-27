@@ -25,8 +25,72 @@ else:
     st.sidebar.title("Navigation")
     page = st.sidebar.radio("Select a page:", ["Order Creation", "Order Creation with Excel", "Order Comparison", "Fee Checking"])
 
-    # Order Creation Page
-    if page == "Order Creation":
+    # Order Creation with Excel
+    if page == "Order Creation with Excel":
+        st.title("Order Creation with Excel")
+
+        uploaded_file = st.file_uploader("Upload Excel File (with Two Sheets)", type=["xlsx"])
+        if uploaded_file:
+            try:
+                # Load both sheets
+                state_data = pd.read_excel(uploaded_file, sheet_name='StateRanks')
+                program_data = pd.read_excel(uploaded_file, sheet_name='ProgramRanks')
+
+                # Validate State Sheet
+                if not {'State', 'State Rank'}.issubset(state_data.columns):
+                    st.error("State sheet must contain 'State' and 'State Rank' columns.")
+                else:
+                    st.success("State data loaded successfully!")
+
+                # Validate Program Sheet
+                if not {'Program', 'Program Type', 'Program Rank'}.issubset(program_data.columns):
+                    st.error("Program sheet must contain 'Program', 'Program Type', and 'Program Rank' columns.")
+                else:
+                    st.success("Program data loaded successfully!")
+
+                # Map state and program ranks
+                master_sheet['State Rank'] = master_sheet['State'].map(state_data.set_index('State')['State Rank']).fillna(0)
+                master_sheet['Program Rank'] = master_sheet.apply(
+                    lambda x: program_data.loc[
+                        (program_data['Program'].str.upper() == x['Program'].upper()) &
+                        (program_data['Program Type'].str.upper() == x['TYPE'].upper()),
+                        'Program Rank'
+                    ].values[0] if ((program_data['Program'].str.upper() == x['Program'].upper()) &
+                                    (program_data['Program Type'].str.upper() == x['TYPE'].upper())).any() else 0,
+                    axis=1
+                )
+
+                # Generate ordered table
+                ordered_data = master_sheet.query("`State Rank` > 0 and `Program Rank` > 0").sort_values(
+                    by=['Program Rank', 'State Rank']
+                ).reset_index(drop=True)
+                ordered_data['Order Number'] = range(1, len(ordered_data) + 1)
+
+                # Collapsible section to select columns to display
+                with st.expander("Select Columns to Display", expanded=True):
+                    st.write("### Choose the columns you want to include in the ordered table:")
+                    default_columns = ['MAIN CODE', 'Program', 'TYPE', 'State', 'College Name', 'Program Rank', 'State Rank', 'Order Number']
+                    selected_columns = st.multiselect(
+                        "Select columns:",
+                        list(master_sheet.columns) + ['State Rank', 'Program Rank', 'Order Number'],  # Include derived columns
+                        default=default_columns
+                    )
+
+                # Display ordered table with selected columns
+                if st.button("Generate Ordered Table"):
+                    if selected_columns:
+                        st.write("### Ordered Table from Uploaded Excel")
+                        ordered_data.index = range(1, len(ordered_data) + 1)  # Reset index to start from 1
+                        st.dataframe(ordered_data[selected_columns])
+                    else:
+                        st.warning("Please select at least one column to display the table.")
+            except Exception as e:
+                st.error(f"An error occurred while processing the uploaded file: {e}")
+        else:
+            st.info("Please upload an Excel file with two sheets: 'StateRanks' and 'ProgramRanks'.")
+
+    # Order Creation (Manual)
+    elif page == "Order Creation":
         st.title("Order Creation Dashboard")
 
         # Ensure necessary columns exist
@@ -140,55 +204,6 @@ else:
                         st.dataframe(ordered_data[selected_columns])
                     else:
                         st.warning("Please select at least one column to display the table.")
-
-    # Order Creation with Excel
-    elif page == "Order Creation with Excel":
-        st.title("Order Creation with Excel")
-
-        uploaded_file = st.file_uploader("Upload Excel File (with Two Sheets)", type=["xlsx"])
-        if uploaded_file:
-            try:
-                # Load both sheets
-                state_data = pd.read_excel(uploaded_file, sheet_name='StateRanks')
-                program_data = pd.read_excel(uploaded_file, sheet_name='ProgramRanks')
-
-                # Validate State Sheet
-                if not {'State', 'State Rank'}.issubset(state_data.columns):
-                    st.error("State sheet must contain 'State' and 'State Rank' columns.")
-                else:
-                    st.success("State data loaded successfully!")
-
-                # Validate Program Sheet
-                if not {'Program', 'Program Type', 'Program Rank'}.issubset(program_data.columns):
-                    st.error("Program sheet must contain 'Program', 'Program Type', and 'Program Rank' columns.")
-                else:
-                    st.success("Program data loaded successfully!")
-
-                # Map state and program ranks
-                master_sheet['State Rank'] = master_sheet['State'].map(state_data.set_index('State')['State Rank']).fillna(0)
-                master_sheet['Program Rank'] = master_sheet.apply(
-                    lambda x: program_data.loc[
-                        (program_data['Program'].str.upper() == x['Program'].upper()) &
-                        (program_data['Program Type'].str.upper() == x['TYPE'].upper()),
-                        'Program Rank'
-                    ].values[0] if ((program_data['Program'].str.upper() == x['Program'].upper()) &
-                                    (program_data['Program Type'].str.upper() == x['TYPE'].upper())).any() else 0,
-                    axis=1
-                )
-
-                # Generate ordered table
-                ordered_data = master_sheet.query("`State Rank` > 0 and `Program Rank` > 0").sort_values(
-                    by=['Program Rank', 'State Rank']
-                ).reset_index(drop=True)
-                ordered_data['Order Number'] = range(1, len(ordered_data) + 1)
-
-                # Display ordered table
-                st.write("### Ordered Table from Uploaded Excel")
-                st.dataframe(ordered_data[['MAIN CODE', 'Program', 'TYPE', 'State', 'College Name', 'Program Rank', 'State Rank', 'Order Number']])
-            except Exception as e:
-                st.error(f"An error occurred while processing the uploaded file: {e}")
-        else:
-            st.info("Please upload an Excel file with two sheets: 'StateRanks' and 'ProgramRanks'.")
 
     # Order Comparison Page
     elif page == "Order Comparison":
