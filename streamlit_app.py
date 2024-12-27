@@ -30,11 +30,11 @@ else:
     page = st.sidebar.radio("Select a page:", ["Master Data", "Order Creation", "Order Creation with Excel", "Order Comparison", "Fee Checking"])
 
     if page == "Master Data":
-    st.title("Master Data Overview")
+        st.title("Master Data Overview")
 
-    # Display the master sheet with formatted numeric columns
-    st.write("### Master Sheet (with Numeric Columns Formatted)")
-    st.dataframe(master_sheet.style.format({col: "{:.0f}" for col in numeric_columns}))
+        # Display the master sheet with formatted numeric columns
+        st.write("### Master Sheet (with Numeric Columns Formatted)")
+        st.dataframe(master_sheet.style.format({col: "{:.0f}" for col in numeric_columns}))
 
     # Order Creation with Excel
     elif page == "Order Creation with Excel":
