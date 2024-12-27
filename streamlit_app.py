@@ -11,6 +11,11 @@ if not os.path.exists(MASTER_FILE):
 else:
     master_sheet = pd.read_excel(MASTER_FILE, sheet_name='Sheet1')
 
+    # Normalize `State` and `Program` columns
+    master_sheet['State'] = master_sheet['State'].str.strip().str.upper()  # Convert to uppercase for consistency
+    master_sheet['Program'] = master_sheet['Program'].str.strip().str.upper()
+    master_sheet['TYPE'] = master_sheet['TYPE'].astype(str).str.strip().str.upper()  # Normalize TYPE to uppercase
+
     # Sidebar navigation
     st.sidebar.title("Navigation")
     page = st.sidebar.radio("Select a page:", ["Order Comparison", "Order Creation", "Fee Checking"])
@@ -20,18 +25,18 @@ else:
         st.title("Order Creation Dashboard")
 
         # Ensure necessary columns exist
-        if {'State', 'Program', 'College Name'}.issubset(master_sheet.columns):
+        if {'State', 'Program', 'College Name', 'TYPE'}.issubset(master_sheet.columns):
             unique_states = master_sheet['State'].unique()
-            unique_programs = master_sheet['Program'].unique()
+            unique_types = master_sheet['TYPE'].unique()
 
             # Tabs for Ranking and Orders
             tab1, tab2, tab3 = st.tabs([
-                "Ranking States", 
-                "Ranking Programs", 
+                "Ranking States",
+                "Ranking Programs by Type",
                 "Order by Ranking of Programs and States"
             ])
 
-            # Ranking States and Programs (Side-by-Side)
+            # Ranking States
             with tab1:
                 st.subheader("Rank States")
                 state_ranking = {}
@@ -51,24 +56,29 @@ else:
                             used_state_ranks.add(rank)
                         state_ranking[state] = rank
 
+            # Ranking Programs by TYPE
             with tab2:
-                st.subheader("Rank Programs")
+                st.subheader("Rank Programs by Type")
                 program_ranking = {}
-                used_program_ranks = set()  # Track used ranks for programs
+                for type_value in unique_types:
+                    st.write(f"### Programs for TYPE: {type_value}")
+                    filtered_programs = master_sheet[master_sheet['TYPE'] == type_value]['Program'].unique()
 
-                for program in unique_programs:
-                    col1, col2 = st.columns([3, 1])  # Compact layout
-                    with col1:
-                        st.write(program)
-                    with col2:
-                        rank = st.selectbox(
-                            "",
-                            options=[0] + [i for i in range(1, len(unique_programs) + 1) if i not in used_program_ranks],
-                            key=f"program_{program}",
-                        )
-                        if rank > 0:
-                            used_program_ranks.add(rank)
-                        program_ranking[program] = rank
+                    used_program_ranks = set()  # Track used ranks for programs
+
+                    for program in filtered_programs:
+                        col1, col2 = st.columns([3, 1])  # Compact layout
+                        with col1:
+                            st.write(program)
+                        with col2:
+                            rank = st.selectbox(
+                                "",
+                                options=[0] + [i for i in range(1, len(filtered_programs) + 1) if i not in used_program_ranks],
+                                key=f"program_{program}_{type_value}",
+                            )
+                            if rank > 0:
+                                used_program_ranks.add(rank)
+                            program_ranking[program] = rank
 
             # Generate Ordered Table by Rankings
             with tab3:
@@ -81,7 +91,7 @@ else:
 
                     # Filter out zero-ranked states and programs
                     filtered_data = master_sheet[
-                        (master_sheet['State Rank'] > 0) & 
+                        (master_sheet['State Rank'] > 0) &
                         (master_sheet['Program Rank'] > 0)
                     ]
 
@@ -95,14 +105,14 @@ else:
 
                     # Display Ordered Table with College Name
                     st.write("### Ordered Table")
-                    st.write(ordered_data[['Program', 'State', 'College Name', 'Program Rank', 'State Rank', 'Order Number']])
+                    st.write(ordered_data[['Program', 'State', 'College Name', 'TYPE', 'Program Rank', 'State Rank', 'Order Number']])
 
                     # Save to file
                     if st.button("Save Ordered Table"):
                         ordered_data.to_excel("Ordered_Program_State.xlsx", index=False)
                         st.success("Ordered table saved as 'Ordered_Program_State.xlsx'.")
         else:
-            st.error("Required columns 'State', 'Program', and 'College Name' are missing in the master sheet!")
+            st.error("Required columns 'State', 'Program', 'College Name', and 'TYPE' are missing in the master sheet!")
 
     # Order Comparison Page
     elif page == "Order Comparison":
