@@ -122,10 +122,20 @@ else:
                     ).reset_index(drop=True)
                     ordered_data['Order Number'] = range(1, len(ordered_data) + 1)
 
-                    # Dynamic column selection
+                    # Store default columns and allow user to select
+                    if "selected_columns" not in st.session_state:
+                        st.session_state.selected_columns = ['MAIN CODE', 'Program', 'TYPE', 'State', 'College Name', 'Program Rank', 'State Rank', 'Order Number']
+
                     st.write("### Select Columns to Display in the Ordered Table")
-                    columns = list(ordered_data.columns)
-                    selected_columns = st.multiselect("Select columns:", columns, default=['MAIN CODE', 'Program', 'TYPE', 'State', 'College Name', 'Program Rank', 'State Rank', 'Order Number'])
+                    selected_columns = st.multiselect(
+                        "Select columns:",
+                        list(ordered_data.columns),
+                        default=st.session_state.selected_columns,
+                        key="selected_columns"
+                    )
+
+                    # Update session state with selected columns
+                    st.session_state.selected_columns = selected_columns
 
                     # Display the selected columns
                     if selected_columns:
@@ -134,14 +144,6 @@ else:
                         st.dataframe(ordered_data[selected_columns])
                     else:
                         st.warning("Please select at least one column to display the table.")
-
-                    # Save and download
-                    if st.button("Save and Download Ordered Table"):
-                        file_path = "Ordered_Program_State.xlsx"
-                        ordered_data[selected_columns].to_excel(file_path, index=False)
-                        st.success(f"Ordered table saved as '{file_path}'.")
-                        with open(file_path, "rb") as file:
-                            st.download_button("Download Ordered Table", file, file_name=file_path)
 
         else:
             st.error("Required columns 'State', 'Program', 'College Name', and 'TYPE' are missing in the master sheet!")
