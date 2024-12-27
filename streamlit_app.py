@@ -50,7 +50,7 @@ else:
                     col1, col2 = st.columns([4, 1])  # Adjusted column widths for better layout
                     with col1:
                         rank = st.selectbox(
-                            f"Select rank for {state}",
+                            state,  # Directly display the state name
                             options=[0] + [i for i in range(1, len(unique_states) + 1) if i not in state_ranking.values()],
                             key=f"state_{state}",
                         )
@@ -82,7 +82,7 @@ else:
                     col1, col2 = st.columns([4, 1])  # Adjusted column widths for better layout
                     with col1:
                         rank = st.selectbox(
-                            f"Select rank for {program} ({program_type})",
+                            f"{program} ({program_type})",  # Concise label with program and type
                             options=[0] + [i for i in range(1, len(all_programs) + 1) if i not in program_ranking.values()],
                             key=f"program_{program}_{program_type}",
                         )
