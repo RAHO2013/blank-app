@@ -10,7 +10,12 @@ MASTER_FILE = "MASTER EXCEL.xlsx"
 if not os.path.exists(MASTER_FILE):
     st.error(f"Master file '{MASTER_FILE}' is missing in the project folder!")
 else:
-    master_sheet = pd.read_excel(MASTER_FILE, sheet_name='Sheet1')
+    # Explicitly specify numeric columns to ensure proper formatting
+    master_sheet = pd.read_excel(
+        MASTER_FILE,
+        sheet_name='Sheet1',
+        dtype={'MCC College Code': 'int64', 'COURSE CODE': 'int64'}  # Adjust based on your actual numeric columns
+    )
 
     # Normalize `State`, `Program`, and `TYPE` columns
     master_sheet['State'] = master_sheet['State'].str.strip().str.upper()
@@ -204,34 +209,3 @@ else:
                         st.dataframe(ordered_data[selected_columns])
                     else:
                         st.warning("Please select at least one column to display the table.")
-
-    # Order Comparison Page
-    elif page == "Order Comparison":
-        st.title("Order Comparison Dashboard")
-        uploaded_file = st.file_uploader("Upload Comparison File (Excel)", type=["xlsx"])
-        if uploaded_file:
-            comparison_sheet = pd.read_excel(uploaded_file, sheet_name='Sheet1')
-            if 'Institute Name' in comparison_sheet.columns and 'Program Name' in comparison_sheet.columns:
-                comparison_sheet['MAIN CODE'] = comparison_sheet['Institute Name'].astype(str) + "_" + comparison_sheet['Program Name'].astype(str)
-                st.success("MAIN CODE created for Comparison file.")
-                master_sheet['MAIN CODE'] = master_sheet['MCC College Code'].astype(str) + "_" + master_sheet['COURSE CODE'].astype(str)
-                missing_in_comparison = set(master_sheet['MAIN CODE']) - set(comparison_sheet['MAIN CODE'])
-                missing_in_master = set(comparison_sheet['MAIN CODE']) - set(master_sheet['MAIN CODE'])
-
-                st.write("### MAIN CODE Missing in Comparison File")
-                missing_comparison_df = pd.DataFrame(list(missing_in_comparison), columns=["MAIN CODE"])
-                missing_comparison_df.index = range(1, len(missing_comparison_df) + 1)  # Reset index to start from 1
-                st.dataframe(missing_comparison_df)
-
-                st.write("### MAIN CODE Missing in Master File")
-                missing_master_df = pd.DataFrame(list(missing_in_master), columns=["MAIN CODE"])
-                missing_master_df.index = range(1, len(missing_master_df) + 1)  # Reset index to start from 1
-                st.dataframe(missing_master_df)
-
-    # Fee Checking Page
-    elif page == "Fee Checking":
-        st.title("Fee Checking Dashboard")
-        if 'Fees' in master_sheet.columns:
-            st.bar_chart(master_sheet.groupby('Program')['Fees'].mean())
-        else:
-            st.warning("The column 'Fees' is missing in the master sheet.")
