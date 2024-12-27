@@ -43,61 +43,65 @@ else:
             # Ranking States
             with tab1:
                 st.subheader("Rank States")
-                state_ranking = {}
-                ranked_data = []
+                rank_tab1, rank_tab2 = st.tabs(["Assign Rankings", "View Entered Rankings"])
 
-                for state in unique_states:
-                    col1, col2 = st.columns([4, 1])  # Adjusted column widths for better layout
-                    with col1:
-                        rank = st.selectbox(
-                            state,  # Directly display the state name
-                            options=[0] + [i for i in range(1, len(unique_states) + 1) if i not in state_ranking.values()],
-                            key=f"state_{state}",
-                        )
-                    if rank > 0:
-                        state_ranking[state] = rank
-                        ranked_data.append({"State": state, "Rank": rank})
+                with rank_tab1:
+                    state_ranking = {}
+                    ranked_data = []
 
-                # Check if ranked_data is populated
-                if ranked_data:
-                    # Convert to DataFrame and display the entered rankings
-                    state_df = pd.DataFrame(ranked_data).sort_values("Rank")
-                    st.write("### Entered State Rankings")
-                    st.dataframe(state_df)
-                else:
-                    st.write("No states ranked yet. Please assign ranks to display the table.")
+                    for state in unique_states:
+                        col1, col2 = st.columns([4, 1])  # Adjusted column widths for better layout
+                        with col1:
+                            rank = st.selectbox(
+                                state,  # Directly display the state name
+                                options=[0] + [i for i in range(1, len(unique_states) + 1) if i not in state_ranking.values()],
+                                key=f"state_{state}",
+                            )
+                        if rank > 0:
+                            state_ranking[state] = rank
+                            ranked_data.append({"State": state, "Rank": rank})
+
+                with rank_tab2:
+                    if ranked_data:
+                        # Convert to DataFrame and display the entered rankings
+                        state_df = pd.DataFrame(ranked_data).sort_values("Rank")
+                        st.write("### Entered State Rankings")
+                        st.dataframe(state_df)
+                    else:
+                        st.write("No states ranked yet. Please assign ranks to display the table.")
 
             # Ranking Programs by TYPE
             with tab2:
                 st.subheader("Rank Programs by Type")
-                all_programs = master_sheet[['TYPE', 'Program']].drop_duplicates()
+                rank_tab1, rank_tab2 = st.tabs(["Assign Rankings", "View Entered Rankings"])
 
-                program_ranking = {}
-                ranked_data = []
+                with rank_tab1:
+                    all_programs = master_sheet[['TYPE', 'Program']].drop_duplicates()
+                    program_ranking = {}
+                    ranked_data = []
 
-                # Ranking all programs without filtering by TYPE
-                for _, row in all_programs.iterrows():
-                    program = row['Program']
-                    program_type = row['TYPE']
-                    col1, col2 = st.columns([4, 1])  # Adjusted column widths for better layout
-                    with col1:
-                        rank = st.selectbox(
-                            f"{program} ({program_type})",  # Concise label with program and type
-                            options=[0] + [i for i in range(1, len(all_programs) + 1) if i not in program_ranking.values()],
-                            key=f"program_{program}_{program_type}",
-                        )
-                    if rank > 0:
-                        program_ranking[(program, program_type)] = rank
-                        ranked_data.append({"Program": program, "TYPE": program_type, "Rank": rank})
+                    for _, row in all_programs.iterrows():
+                        program = row['Program']
+                        program_type = row['TYPE']
+                        col1, col2 = st.columns([4, 1])  # Adjusted column widths for better layout
+                        with col1:
+                            rank = st.selectbox(
+                                f"{program} ({program_type})",  # Concise label with program and type
+                                options=[0] + [i for i in range(1, len(all_programs) + 1) if i not in program_ranking.values()],
+                                key=f"program_{program}_{program_type}",
+                            )
+                        if rank > 0:
+                            program_ranking[(program, program_type)] = rank
+                            ranked_data.append({"Program": program, "TYPE": program_type, "Rank": rank})
 
-                # Check if ranked_data is populated
-                if ranked_data:
-                    # Convert to DataFrame and display the entered rankings
-                    program_df = pd.DataFrame(ranked_data).sort_values("Rank")
-                    st.write("### Entered Program Rankings")
-                    st.dataframe(program_df)
-                else:
-                    st.write("No programs ranked yet. Please assign ranks to display the table.")
+                with rank_tab2:
+                    if ranked_data:
+                        # Convert to DataFrame and display the entered rankings
+                        program_df = pd.DataFrame(ranked_data).sort_values("Rank")
+                        st.write("### Entered Program Rankings")
+                        st.dataframe(program_df)
+                    else:
+                        st.write("No programs ranked yet. Please assign ranks to display the table.")
 
             # Generate Ordered Table by Rankings
             with tab3:
