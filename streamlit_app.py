@@ -25,30 +25,6 @@ else:
     st.sidebar.title("Navigation")
     page = st.sidebar.radio("Select a page:", ["Order Creation", "Order Comparison", "Fee Checking"])
 
-    # Helper function for ranking
-    def rank_items(items, label_prefix):
-        ranks = {}
-        used_ranks = set()
-        data = []
-
-        for item in items:
-            col1, col2 = st.columns([3, 1])  # Compact layout
-            with col1:
-                st.write(item)
-            with col2:
-                rank = st.selectbox(
-                    f"Select rank for {item}",
-                    options=[0] + [i for i in range(1, len(items) + 1) if i not in used_ranks],
-                    key=f"{label_prefix}_{item}",
-                )
-                if rank > 0:
-                    used_ranks.add(rank)
-                ranks[item] = rank
-                data.append({"Item": item, "Rank": rank})
-
-        ranked_df = pd.DataFrame(data).query("Rank > 0").sort_values("Rank")
-        return ranks, ranked_df
-
     # Order Creation Page
     if page == "Order Creation":
         st.title("Order Creation Dashboard")
@@ -67,9 +43,29 @@ else:
             # Ranking States
             with tab1:
                 st.subheader("Rank States")
-                state_ranking, state_df = rank_items(unique_states, "state")
-                st.write("### Entered State Rankings")
-                st.dataframe(state_df)
+                state_ranking = {}
+                ranked_data = []
+
+                for state in unique_states:
+                    col1, col2 = st.columns([4, 1])  # Adjusted column widths for better layout
+                    with col1:
+                        rank = st.selectbox(
+                            f"Select rank for {state}",
+                            options=[0] + [i for i in range(1, len(unique_states) + 1) if i not in state_ranking.values()],
+                            key=f"state_{state}",
+                        )
+                    if rank > 0:
+                        state_ranking[state] = rank
+                        ranked_data.append({"State": state, "Rank": rank})
+
+                # Check if ranked_data is populated
+                if ranked_data:
+                    # Convert to DataFrame and display the entered rankings
+                    state_df = pd.DataFrame(ranked_data).sort_values("Rank")
+                    st.write("### Entered State Rankings")
+                    st.dataframe(state_df)
+                else:
+                    st.write("No states ranked yet. Please assign ranks to display the table.")
 
             # Ranking Programs by TYPE
             with tab2:
@@ -83,18 +79,16 @@ else:
                 for _, row in all_programs.iterrows():
                     program = row['Program']
                     program_type = row['TYPE']
-                    col1, col2 = st.columns([3, 1])  # Compact layout
+                    col1, col2 = st.columns([4, 1])  # Adjusted column widths for better layout
                     with col1:
-                        st.write(f"{program} ({program_type})")
-                    with col2:
                         rank = st.selectbox(
                             f"Select rank for {program} ({program_type})",
                             options=[0] + [i for i in range(1, len(all_programs) + 1) if i not in program_ranking.values()],
                             key=f"program_{program}_{program_type}",
                         )
-                        if rank > 0:
-                            program_ranking[(program, program_type)] = rank
-                            ranked_data.append({"Program": program, "TYPE": program_type, "Rank": rank})
+                    if rank > 0:
+                        program_ranking[(program, program_type)] = rank
+                        ranked_data.append({"Program": program, "TYPE": program_type, "Rank": rank})
 
                 # Check if ranked_data is populated
                 if ranked_data:
