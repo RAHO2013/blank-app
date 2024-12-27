@@ -50,7 +50,7 @@ else:
                             st.write(state)
                         with col2:
                             rank = st.selectbox(
-                                "",
+                                f"Select rank for {state}",
                                 options=[0] + [i for i in range(1, len(unique_states) + 1) if i not in used_state_ranks],
                                 key=f"state_{state}",
                             )
@@ -69,21 +69,21 @@ else:
             with tab2:
                 st.subheader("Rank Programs by Type")
                 program_ranking = {}
+
                 for type_value in unique_types:
+                    filtered_programs = master_sheet[master_sheet['TYPE'] == type_value]['Program'].unique()
+
+                    used_program_ranks = set()  # Track used ranks for programs
+                    program_data = []  # Store program and rank pairs
+
                     with st.expander(f"Expand/Collapse Program Ranking for TYPE: {type_value}"):
-                        st.write(f"### Programs for TYPE: {type_value}")
-                        filtered_programs = master_sheet[master_sheet['TYPE'] == type_value]['Program'].unique()
-
-                        used_program_ranks = set()  # Track used ranks for programs
-                        program_data = []  # Store program and rank pairs
-
                         for program in filtered_programs:
                             col1, col2 = st.columns([3, 1])  # Compact layout
                             with col1:
                                 st.write(program)
                             with col2:
                                 rank = st.selectbox(
-                                    "",
+                                    f"Select rank for {program} ({type_value})",
                                     options=[0] + [i for i in range(1, len(filtered_programs) + 1) if i not in used_program_ranks],
                                     key=f"program_{program}_{type_value}",
                                 )
