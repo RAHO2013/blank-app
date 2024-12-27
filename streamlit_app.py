@@ -75,7 +75,29 @@ else:
             with tab2:
                 st.subheader("Rank Programs by Type")
                 all_programs = master_sheet[['TYPE', 'Program']].drop_duplicates()
-                program_ranking, program_df = rank_items(all_programs['Program'], "program")
+
+                program_ranking = {}
+                ranked_data = []
+
+                # Ranking all programs without filtering by TYPE
+                for _, row in all_programs.iterrows():
+                    program = row['Program']
+                    program_type = row['TYPE']
+                    col1, col2 = st.columns([3, 1])  # Compact layout
+                    with col1:
+                        st.write(f"{program} ({program_type})")
+                    with col2:
+                        rank = st.selectbox(
+                            f"Select rank for {program} ({program_type})",
+                            options=[0] + [i for i in range(1, len(all_programs) + 1) if i not in program_ranking.values()],
+                            key=f"program_{program}_{program_type}",
+                        )
+                        if rank > 0:
+                            program_ranking[(program, program_type)] = rank
+                            ranked_data.append({"Program": program, "TYPE": program_type, "Rank": rank})
+
+                # Convert to DataFrame and display the entered rankings
+                program_df = pd.DataFrame(ranked_data).sort_values("Rank")
                 st.write("### Entered Program Rankings")
                 st.dataframe(program_df)
 
@@ -85,7 +107,9 @@ else:
                 if st.button("Generate Order Table"):
                     # Apply rankings to the master sheet
                     master_sheet['State Rank'] = master_sheet['State'].map(state_ranking).fillna(0)
-                    master_sheet['Program Rank'] = master_sheet['Program'].map(program_ranking).fillna(0)
+                    master_sheet['Program Rank'] = master_sheet.apply(
+                        lambda x: program_ranking.get((x['Program'], x['TYPE']), 0), axis=1
+                    )
 
                     # Filter and sort data
                     ordered_data = master_sheet.query("`State Rank` > 0 and `Program Rank` > 0").sort_values(
@@ -94,7 +118,7 @@ else:
                     ordered_data['Order Number'] = range(1, len(ordered_data) + 1)
 
                     st.write("### Ordered Table")
-                    st.dataframe(ordered_data[['MAIN CODE', 'Program', 'State', 'College Name', 'TYPE', 'Program Rank', 'State Rank', 'Order Number']])
+                    st.dataframe(ordered_data[['MAIN CODE', 'Program', 'TYPE', 'State', 'College Name', 'Program Rank', 'State Rank', 'Order Number']])
 
                     # Save and download
                     if st.button("Save and Download Ordered Table"):
