@@ -10,12 +10,8 @@ MASTER_FILE = "MASTER EXCEL.xlsx"
 if not os.path.exists(MASTER_FILE):
     st.error(f"Master file '{MASTER_FILE}' is missing in the project folder!")
 else:
-    # Explicitly specify numeric columns to ensure proper formatting
-    master_sheet = pd.read_excel(
-        MASTER_FILE,
-        sheet_name='Sheet1',
-        dtype={'MCC College Code': 'int64', 'COURSE CODE': 'int64'}  # Adjust based on your actual numeric columns
-    )
+    # Load the master sheet
+    master_sheet = pd.read_excel(MASTER_FILE, sheet_name='Sheet1')
 
     # Normalize `State`, `Program`, and `TYPE` columns
     master_sheet['State'] = master_sheet['State'].str.strip().str.upper()
@@ -26,12 +22,27 @@ else:
     if {'MCC College Code', 'COURSE CODE'}.issubset(master_sheet.columns):
         master_sheet['MAIN CODE'] = master_sheet['MCC College Code'].astype(str) + "_" + master_sheet['COURSE CODE'].astype(str)
 
+    # Detect numeric columns
+    numeric_columns = master_sheet.select_dtypes(include=['int64', 'float64']).columns
+
     # Sidebar navigation
     st.sidebar.title("Navigation")
-    page = st.sidebar.radio("Select a page:", ["Order Creation", "Order Creation with Excel", "Order Comparison", "Fee Checking"])
+    page = st.sidebar.radio("Select a page:", ["Master Data", "Order Creation", "Order Creation with Excel", "Order Comparison", "Fee Checking"])
+
+    # Master Data Page
+    if page == "Master Data":
+        st.title("Master Data Overview")
+
+        # Display numeric columns without commas
+        st.write("### Numeric Columns Formatted Correctly")
+        st.dataframe(master_sheet.style.format({col: "{:.0f}" for col in numeric_columns}))
+
+        # Display full data
+        st.write("### Full Master Sheet")
+        st.dataframe(master_sheet)
 
     # Order Creation with Excel
-    if page == "Order Creation with Excel":
+    elif page == "Order Creation with Excel":
         st.title("Order Creation with Excel")
 
         uploaded_file = st.file_uploader("Upload Excel File (with Two Sheets)", type=["xlsx"])
@@ -85,8 +96,8 @@ else:
                 if st.button("Generate Ordered Table"):
                     if selected_columns:
                         st.write("### Ordered Table from Uploaded Excel")
-                        ordered_data.index = range(1, len(ordered_data) + 1)  # Reset index to start from 1
-                        st.dataframe(ordered_data[selected_columns])
+                        # Format numeric columns in the ordered table
+                        st.dataframe(ordered_data[selected_columns].style.format({col: "{:.0f}" for col in numeric_columns}))
                     else:
                         st.warning("Please select at least one column to display the table.")
             except Exception as e:
@@ -205,7 +216,7 @@ else:
                     # Display the selected columns
                     if selected_columns:
                         st.write("### Ordered Table")
-                        ordered_data.index = range(1, len(ordered_data) + 1)  # Reset index to start from 1
-                        st.dataframe(ordered_data[selected_columns])
+                        # Format numeric columns in the ordered table
+                        st.dataframe(ordered_data[selected_columns].style.format({col: "{:.0f}" for col in numeric_columns}))
                     else:
                         st.warning("Please select at least one column to display the table.")
