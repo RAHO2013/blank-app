@@ -4,7 +4,7 @@ import os
 
 st.title("Master Data Overview")
 
-MASTER_FILE = "MASTER EXCEL.xlsx"
+MASTER_FILE = "data/MASTER EXCEL.xlsx"
 
 @st.cache_data
 def load_master_file():
