@@ -49,6 +49,11 @@ def parse_admissions_data_from_pdf(file):
             processing_rows = True  # Start processing rows for this CRS
             debug_log.append(f"Captured CRS: {current_course_code}, {current_course_name}")
 
+        # Skip headings like RANK, ROLL_NO
+        elif line.lower().startswith("rank roll_no"):
+            debug_log.append("Skipped line: Repeated headings.")
+            continue
+
         # Process student rows
         elif processing_rows:
             parts = line.split()
