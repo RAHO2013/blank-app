@@ -62,16 +62,21 @@ def extract_college_course_and_student_details(file):
                 sx = sex_match.group(1) if sex_match else ""
                 remaining_line = remaining_line[:remaining_line.rfind(sx)].strip() if sx else remaining_line
 
-                # Match location (fixed "OU"), ensuring it is after candidate name
-                if "OU" in remaining_line:
-                    loc_match = re.search(r"OU", remaining_line)
-                    if loc_match:
-                        loc = "OU"
-                        remaining_line = remaining_line[:remaining_line.rfind("OU")].strip()
-                    else:
-                        loc = ""
+                # Match location (fixed "OU"), ensuring it is correctly positioned
+                loc_match = re.search(r"\bOU\b", remaining_line)
+                if loc_match:
+                    loc = "OU"
+                    remaining_line = remaining_line[:loc_match.start()].strip()
                 else:
                     loc = ""
+
+                # Match category (specific categories allowed)
+                category_match = re.search(r"(BCA|BCB|BCD|BCC|BCE|ST|SC|OC)$", remaining_line)
+                if category_match:
+                    cat = category_match.group(1)
+                    remaining_line = remaining_line[:category_match.start()].strip()
+                else:
+                    cat = ""
 
                 # Match rank (1 to 6 digits)
                 rank_match = re.match(r"^(\d{1,6})\s", remaining_line)
@@ -91,17 +96,9 @@ def extract_college_course_and_student_details(file):
                     continue
                 percentile = percentile_match.group(1)
 
-                # Match candidate name (all letters between percentile and location)
-                candidate_name_start = remaining_line.find(percentile) + len(percentile)
-                candidate_name = remaining_line[candidate_name_start:].strip()
-
-                # Match category (specific categories allowed)
-                category_match = re.search(r"(BCA|BCB|BCD|BCC|BCE|ST|SC|OC)", candidate_name)
-                if category_match:
-                    candidate_name = candidate_name[:category_match.start()].strip()
-                    cat = category_match.group(1)
-                else:
-                    cat = ""
+                # Match candidate name (remaining part after rank, roll_no, and percentile)
+                candidate_name_start = remaining_line.find(rank) + len(rank)
+                candidate_name = remaining_line[candidate_name_start:roll_no_match.start()].strip()
 
                 # Append structured row
                 structured_data.append([
