@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 from PyPDF2 import PdfReader
+import re
 
 def parse_admissions_data_from_pdf(file):
     # Read the uploaded PDF file
@@ -46,29 +47,68 @@ def parse_admissions_data_from_pdf(file):
 
         # Process student rows only if processing_rows is True
         elif processing_rows:
-            parts = line.split()
-            if len(parts) >= 10:  # Ensure minimum columns for valid data
-                try:
-                    rank = parts[0]
-                    roll_no = parts[1]
-                    percentile = parts[2]
-                    candidate_name = " ".join(parts[3:-7])
-                    loc = parts[-7]
-                    cat = parts[-6]
-                    sx = parts[-5]
-                    min_status = parts[-4]
-                    ph = parts[-3]
-                    adm_details = " ".join(parts[-2:])
-
-                    # Append structured row
-                    structured_data.append([
-                        current_college_code, current_college_name, 
-                        current_course_code, current_course_name, 
-                        rank, roll_no, percentile, candidate_name, loc, cat, sx, 
-                        min_status, ph, adm_details
-                    ])
-                except Exception as e:
+            parts = re.split(r'\s+', line)
+            try:
+                # Extract Rank (must be a number less than 300000)
+                rank = parts[0]
+                if not rank.isdigit() or int(rank) > 300000:
                     continue
+
+                # Extract Roll Number (11 digits starting with 24)
+                roll_no = parts[1]
+                if not re.match(r'^24\d{9}$', roll_no):
+                    continue
+
+                # Extract Percentile (a floating-point number)
+                percentile = parts[2]
+                if not re.match(r'^\d+\.\d+$', percentile):
+                    continue
+
+                # Extract Candidate Name (letters only)
+                candidate_name_parts = []
+                for part in parts[3:]:
+                    if part.upper() in ["OU", "BCA", "BCB", "BCD", "BCC", "BCE", "ST", "SC", "OC", "F", "M", "MSM", "PHO"]:
+                        break
+                    candidate_name_parts.append(part)
+                candidate_name = " ".join(candidate_name_parts)
+
+                # Extract Location (OU)
+                loc = parts[3 + len(candidate_name_parts)]
+                if loc != "OU":
+                    continue
+
+                # Extract Category (BCA, BCB, BCD, etc.)
+                cat = parts[4 + len(candidate_name_parts)]
+                if cat not in ["BCA", "BCB", "BCD", "BCC", "BCE", "ST", "SC", "OC"]:
+                    continue
+
+                # Extract Sex (F, M)
+                sx = parts[5 + len(candidate_name_parts)]
+                if sx not in ["F", "M"]:
+                    continue
+
+                # Extract MIN (MSM or blank)
+                min_status = parts[6 + len(candidate_name_parts)]
+                if min_status not in ["MSM", ""]:
+                    continue
+
+                # Extract PH (PHO or blank)
+                ph = parts[7 + len(candidate_name_parts)]
+                if ph not in ["PHO", ""]:
+                    continue
+
+                # Extract Admission Details (remaining parts)
+                adm_details = " ".join(parts[8 + len(candidate_name_parts):])
+
+                # Append structured row
+                structured_data.append([
+                    current_college_code, current_college_name, 
+                    current_course_code, current_course_name, 
+                    rank, roll_no, percentile, candidate_name, loc, cat, sx, 
+                    min_status, ph, adm_details
+                ])
+            except Exception as e:
+                continue
 
     # Define DataFrame columns
     columns = [
