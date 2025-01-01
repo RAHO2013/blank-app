@@ -64,8 +64,12 @@ def parse_admissions_data_from_pdf(file):
                     continue
                 percentile = percentile_match.group(0)
 
-                candidate_name_start = percentile_match.end() + roll_no_match.end()
+                candidate_name_start = line.find(percentile) + len(percentile) + 1
                 candidate_name_end = line.find("OU", candidate_name_start)
+
+                # Handle cases where "OU" is part of the name
+                while "OU" in line[candidate_name_start:candidate_name_end] and line[candidate_name_end + 2:candidate_name_end + 5] not in ["BCA", "BCB", "BCD", "BCC", "BCE", "ST", "SC", "OC"]:
+                    candidate_name_end = line.find("OU", candidate_name_end + 1)
                 if candidate_name_end == -1:
                     continue
                 candidate_name = line[candidate_name_start:candidate_name_end].strip()
