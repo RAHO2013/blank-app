@@ -75,18 +75,20 @@ def extract_college_course_and_student_details(file):
                     continue
                 cat = category_match.group(1)
 
-                # Match sex (F or M)
-                sex_match = re.search(r"(F|M)", line[category_match.end():])
-                if not sex_match:
-                    continue
-                sx = sex_match.group(1)
+                # Match sex (F or M), ensuring it is after category
+                remaining_line = line[category_match.end():].strip()
+                sex_match = re.match(r"^(F|M)(\s|$)", remaining_line)
+                if sex_match:
+                    sx = sex_match.group(1)
+                else:
+                    sx = ""  # Default to blank if not matched
 
                 # Match MIN (MSM or blank)
-                min_match = re.search(r"(MSM)?", line[sex_match.end():])
+                min_match = re.search(r"(MSM)?", remaining_line)
                 min_status = min_match.group(1) if min_match else ""
 
                 # Match PH (PHO or blank)
-                ph_match = re.search(r"(PHO)?", line[min_match.end():] if min_match else "")
+                ph_match = re.search(r"(PHO)?", remaining_line)
                 ph = ph_match.group(1) if ph_match else ""
 
                 # Match admission details (starts with NS- or S- and ends with -P1, -P2, -P3, or -P4)
@@ -103,6 +105,7 @@ def extract_college_course_and_student_details(file):
                     loc, cat, sx, min_status, ph, adm_details
                 ])
             except Exception as e:
+                print(f"Error processing line: {line}, Error: {e}")
                 continue
 
     # Define DataFrame columns
