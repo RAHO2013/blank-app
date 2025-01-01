@@ -1,149 +1,105 @@
 import streamlit as st
 import pandas as pd
-from PyPDF2 import PdfReader
 import re
+from PyPDF2 import PdfReader
 
-def parse_admissions_data_from_pdf(file):
-    # Read the uploaded PDF file
-    reader = PdfReader(file)
-    lines = []
-    for page in reader.pages:
-        extracted_text = page.extract_text()
-        if extracted_text:  # Ensure text was extracted
-            lines.extend(extracted_text.splitlines())
+# Function to parse the PDF and extract data
+def parse_pdf(file):
+    data = []
+    college_code, college_name, course_code, course_name = None, None, None, None
 
-    # Initialize variables
-    structured_data = []
-    current_college_code = ""
-    current_college_name = ""
-    current_course_code = ""
-    current_course_name = ""
-    processing_rows = False  # Ensure rows are processed only after the first COLL section
+    for page in PdfReader(file).pages:
+        text = page.extract_text()
+        lines = text.splitlines()
 
-    for line in lines:
-        line = line.strip()
-        
-        # Skip empty or dashed lines
-        if not line or "-----" in line:
-            continue
+        for line in lines:
+            # Identify college details
+            if line.startswith("COLL ::"):
+                match = re.match(r"COLL :: (\S+) - (.+)", line)
+                if match:
+                    college_code = match.group(1)
+                    college_name = match.group(2)
 
-        # Ensure data processing starts only after the first COLL section
-        if line.startswith("COLL ::"):
-            parts = line.split(" - ")
-            current_college_code = parts[0].replace("COLL ::", "").strip()
-            current_college_name = parts[1].strip() if len(parts) > 1 else ""
-            processing_rows = True  # Start processing rows after COLL is found
+            # Identify course details
+            elif line.startswith("CRS ::"):
+                match = re.match(r"CRS :: (\S+) - (.+)", line)
+                if match:
+                    course_code = match.group(1)
+                    course_name = match.group(2)
 
-        # Identify CRS sections
-        elif line.startswith("CRS ::"):
-            if processing_rows:  # Only process CRS if a COLL has been encountered
-                parts = line.split(" - ")
-                current_course_code = parts[0].replace("CRS ::", "").strip()
-                current_course_name = parts[1].strip() if len(parts) > 1 else ""
+            # Identify student details
+            elif re.match(r"^\d{3,}\s+\d{11}\s+", line):
+                fields = re.split(r"\s{3,}", line)
 
-        # Skip repeated headers
-        elif line.lower().startswith("rank roll_no percentile candidate_name loc cat sx min ph adm details"):
-            continue
+                if len(fields) >= 8:
+                    rank = fields[0]
+                    roll_number = fields[1]
+                    percentile = fields[2]
+                    candidate_name = fields[3]
+                    location = fields[4]
+                    category = fields[5]
+                    sex = fields[6]
+                    minority = fields[7] if fields[7] not in ["", "PHO"] else ""
+                    ph = "PHO" if "PHO" in fields else ""
+                    admission_details = fields[-1]
 
-        # Process student rows only if processing_rows is True
-        elif processing_rows:
-            try:
-                # Use regex to extract specific parts of the line
-                rank_match = re.match(r"^\d{1,6}\s", line)
-                if not rank_match:
-                    continue
-                rank = rank_match.group(0).strip()
+                    data.append([
+                        college_code,
+                        college_name,
+                        course_code,
+                        course_name,
+                        rank,
+                        roll_number,
+                        percentile,
+                        candidate_name,
+                        location,
+                        category,
+                        sex,
+                        minority,
+                        ph,
+                        admission_details,
+                    ])
 
-                roll_no_match = re.search(r"24\d{9}", line)
-                if not roll_no_match:
-                    continue
-                roll_no = roll_no_match.group(0)
+    return pd.DataFrame(
+        data,
+        columns=[
+            "College Code",
+            "College Name",
+            "Course Code",
+            "Course Name",
+            "Rank",
+            "Roll Number",
+            "Percentile",
+            "Candidate Name",
+            "Location",
+            "Category",
+            "Sex",
+            "Minority",
+            "PH",
+            "Admission Details",
+        ],
+    )
 
-                percentile_match = re.search(r"\d+\.\d+", line[roll_no_match.end():])
-                if not percentile_match:
-                    continue
-                percentile = percentile_match.group(0)
+# Streamlit App
+st.title("PDF Data Extractor")
 
-                candidate_name_start = line.find(percentile) + len(percentile) + 1
-                candidate_name_end = line.find("OU", candidate_name_start)
+uploaded_file = st.file_uploader("Upload PDF File", type="pdf")
 
-                # Handle cases where "OU" is part of the name
-                while "OU" in line[candidate_name_start:candidate_name_end] and line[candidate_name_end + 2:candidate_name_end + 5] not in ["BCA", "BCB", "BCD", "BCC", "BCE", "ST", "SC", "OC"]:
-                    candidate_name_end = line.find("OU", candidate_name_end + 1)
-                if candidate_name_end == -1:
-                    continue
-                candidate_name = line[candidate_name_start:candidate_name_end].strip()
+if uploaded_file:
+    st.write("Processing the file...")
+    extracted_data = parse_pdf(uploaded_file)
 
-                loc = "OU"
+    if not extracted_data.empty:
+        st.write("### Extracted Data")
+        st.dataframe(extracted_data)
 
-                category_match = re.search(r"(BCA|BCB|BCD|BCC|BCE|ST|SC|OC)", line[candidate_name_end:])
-                if not category_match:
-                    continue
-                cat = category_match.group(1)
-
-                # Extract gender only after category and ensure it's valid
-                gender_start = category_match.end()
-                sex_match = re.search(r"\b(F|M)\b", line[gender_start:])
-                if not sex_match:
-                    continue
-                sx = sex_match.group(1)
-
-                min_status_match = re.search(r"(MSM)?", line[sex_match.end():])
-                min_status = min_status_match.group(1) if min_status_match else ""
-
-                ph_match = re.search(r"(PHO)?", line[min_status_match.end():] if min_status_match else "")
-                ph = ph_match.group(1) if ph_match else ""
-
-                adm_details_match = re.search(r"(NS-|S-).+(P1|P2|P3|P4|P5)$", line) if re.search(r"(NS-|S-)", line) else ''
-                if not adm_details_match:
-                    continue
-                adm_details = adm_details_match.group(0)
-
-                # Append structured row
-                structured_data.append([
-                    current_college_code, current_college_name, 
-                    current_course_code, current_course_name, 
-                    rank, roll_no, percentile, candidate_name, loc, cat, sx, 
-                    min_status, ph, adm_details
-                ])
-            except Exception as e:
-                continue
-
-    # Define DataFrame columns
-    columns = [
-        "College Code", "College Name", "Course Code", "Course Name", "Rank",
-        "Roll Number", "Percentile", "Candidate Name", "Location", "Category",
-        "Sex", "MIN", "PH", "Admission Details"
-    ]
-
-    # Create DataFrame
-    df = pd.DataFrame(structured_data, columns=columns)
-
-    return df
-
-# Streamlit interface
-st.title("Admissions Data Parser (PDF Support)")
-
-uploaded_file = st.file_uploader("Upload your admissions PDF file", type=["pdf"])
-
-if uploaded_file is not None:
-    # Parse the uploaded PDF file
-    df = parse_admissions_data_from_pdf(uploaded_file)
-
-    if not df.empty:
-        # Display the DataFrame
-        st.write("### Parsed Admissions Data")
-        st.dataframe(df, height=600)  # Adjust height for larger datasets
-
-        # Allow user to download the Excel file
-        excel_file = "structured_admissions_data.xlsx"
-        df.to_excel(excel_file, index=False)
-        with open(excel_file, "rb") as file:
-            st.download_button(
-                label="Download Excel File",
-                data=file,
-                file_name="structured_admissions_data.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            )
+        # Option to download the data
+        csv = extracted_data.to_csv(index=False)
+        st.download_button(
+            label="Download Data as CSV",
+            data=csv,
+            file_name="extracted_data.csv",
+            mime="text/csv",
+        )
     else:
-        st.error("No data extracted. Check the PDF format and content.")
+        st.write("No valid data found in the PDF.")
