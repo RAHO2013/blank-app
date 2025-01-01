@@ -26,7 +26,7 @@ def parse_admissions_data_from_pdf(file):
         if not line or "-----" in line:
             continue
 
-        # Identify COLL sections
+        # Ensure data processing starts only after the first COLL section
         if line.startswith("COLL ::"):
             parts = line.split(" - ")
             current_college_code = parts[0].replace("COLL ::", "").strip()
@@ -35,9 +35,10 @@ def parse_admissions_data_from_pdf(file):
 
         # Identify CRS sections
         elif line.startswith("CRS ::"):
-            parts = line.split(" - ")
-            current_course_code = parts[0].replace("CRS ::", "").strip()
-            current_course_name = parts[1].strip() if len(parts) > 1 else ""
+            if processing_rows:  # Only process CRS if a COLL has been encountered
+                parts = line.split(" - ")
+                current_course_code = parts[0].replace("CRS ::", "").strip()
+                current_course_name = parts[1].strip() if len(parts) > 1 else ""
 
         # Skip repeated headers
         elif line.lower().startswith("rank roll_no percentile candidate_name loc cat sx min ph adm details"):
@@ -47,24 +48,27 @@ def parse_admissions_data_from_pdf(file):
         elif processing_rows:
             parts = line.split()
             if len(parts) >= 10:  # Ensure minimum columns for valid data
-                rank = parts[0]
-                roll_no = parts[1]
-                percentile = parts[2]
-                candidate_name = " ".join(parts[3:-7])
-                loc = parts[-7]
-                cat = parts[-6]
-                sx = parts[-5]
-                min_status = parts[-4]
-                ph = parts[-3]
-                adm_details = " ".join(parts[-2:])
-                
-                # Append structured row
-                structured_data.append([
-                    current_college_code, current_college_name, 
-                    current_course_code, current_course_name, 
-                    rank, roll_no, percentile, candidate_name, loc, cat, sx, 
-                    min_status, ph, adm_details
-                ])
+                try:
+                    rank = parts[0]
+                    roll_no = parts[1]
+                    percentile = parts[2]
+                    candidate_name = " ".join(parts[3:-7])
+                    loc = parts[-7]
+                    cat = parts[-6]
+                    sx = parts[-5]
+                    min_status = parts[-4]
+                    ph = parts[-3]
+                    adm_details = " ".join(parts[-2:])
+
+                    # Append structured row
+                    structured_data.append([
+                        current_college_code, current_college_name, 
+                        current_course_code, current_course_name, 
+                        rank, roll_no, percentile, candidate_name, loc, cat, sx, 
+                        min_status, ph, adm_details
+                    ])
+                except Exception as e:
+                    continue
 
     # Define DataFrame columns
     columns = [
