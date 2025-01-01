@@ -64,7 +64,7 @@ def parse_admissions_data_from_pdf(file):
                     continue
                 percentile = percentile_match.group(1)
 
-                candidate_name_start = line.find(rank) + len(rank) + len(roll_no) + len(percentile) + 3
+                candidate_name_start = roll_no_match.end() + len(percentile) + 1
                 candidate_name_end = line.find("OU", candidate_name_start)
                 if candidate_name_end == -1:
                     continue
@@ -101,6 +101,8 @@ def parse_admissions_data_from_pdf(file):
                     min_status, ph, adm_details
                 ])
             except Exception as e:
+                # Log the error and continue processing other lines
+                print(f"Error processing line: {line}, Error: {e}")
                 continue
 
     # Define DataFrame columns
