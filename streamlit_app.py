@@ -12,6 +12,11 @@ def extract_college_course_and_student_details(file):
             if extracted_text:
                 lines.extend(extracted_text.splitlines())
 
+    # Debug: Print all extracted lines
+    print("Extracted Lines:")
+    for line in lines:
+        print(line)
+
     # Initialize variables
     structured_data = []
     current_college_code = ""
@@ -31,12 +36,14 @@ def extract_college_course_and_student_details(file):
             parts = line.split(" - ")
             current_college_code = parts[0].replace("COLL ::", "").strip()
             current_college_name = parts[1].strip() if len(parts) > 1 else ""
+            print(f"Captured College: {current_college_code}, {current_college_name}")
 
         # Capture course details from CRS ::
         elif line.startswith("CRS ::"):
             parts = line.split(" - ")
             current_course_code = parts[0].replace("CRS ::", "").strip()
             current_course_name = parts[1].strip() if len(parts) > 1 else ""
+            print(f"Captured Course: {current_course_code}, {current_course_name}")
 
         # Process student rows based on specific rules
         else:
@@ -103,7 +110,10 @@ def extract_college_course_and_student_details(file):
                     rank, roll_no, percentile, candidate_name,
                     loc, cat, sx, min_status, ph, adm_details
                 ])
+                print(f"Added Student: {candidate_name}, Rank: {rank}, Roll No: {roll_no}")
+
             except Exception as e:
+                print(f"Error processing line: {line}, Error: {e}")
                 continue
 
     # Define DataFrame columns
