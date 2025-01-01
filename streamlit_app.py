@@ -94,7 +94,7 @@ def parse_admissions_data_from_pdf(file):
                 ph_match = re.search(r"(PHO)?", line[min_status_match.end():] if min_status_match else "")
                 ph = ph_match.group(1) if ph_match else ""
 
-                adm_details_match = re.search(r"(NS-|S-).+(P1|P2|P3|P4|P5)$", line)
+                adm_details_match = re.search(r"(NS-|S-).+(P1|P2|P3|P4|P5)$", line) if re.search(r"(NS-|S-)", line) else ''
                 if not adm_details_match:
                     continue
                 adm_details = adm_details_match.group(0)
