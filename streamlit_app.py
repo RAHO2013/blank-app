@@ -17,6 +17,7 @@ def parse_admissions_data_from_pdf(file):
     current_college_name = ""
     current_course_code = ""
     current_course_name = ""
+    processing_rows = False
 
     for line in lines:
         line = line.strip()
@@ -30,15 +31,21 @@ def parse_admissions_data_from_pdf(file):
             parts = line.split(" - ")
             current_college_code = parts[0].replace("COLL ::", "").strip()
             current_college_name = parts[1].strip() if len(parts) > 1 else ""
+            processing_rows = True  # Start processing rows
 
         # Identify CRS sections
         elif line.startswith("CRS ::"):
             parts = line.split(" - ")
             current_course_code = parts[0].replace("CRS ::", "").strip()
             current_course_name = parts[1].strip() if len(parts) > 1 else ""
+            processing_rows = True
+
+        # Skip repeated headers
+        elif line.lower().startswith("rank roll_no percentile"):
+            continue
 
         # Process student rows
-        else:
+        elif processing_rows:
             parts = line.split()
             if len(parts) >= 10:  # Ensure minimum columns for valid data
                 rank = parts[0]
