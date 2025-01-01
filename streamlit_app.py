@@ -80,6 +80,9 @@ def parse_admissions_data_from_pdf(file):
     # Create DataFrame
     df = pd.DataFrame(structured_data, columns=columns)
 
+    # Remove rows that have "RANK" as the value in the "Rank" column
+    df = df[df["Rank"].str.upper() != "RANK"]
+
     return df
 
 # Streamlit interface
