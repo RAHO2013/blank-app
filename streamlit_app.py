@@ -48,7 +48,7 @@ def extract_college_course_and_student_details(file):
                 rank = rank_match.group(1)
 
                 # Match roll number (11 digits starting with 24)
-                roll_no_match = re.search(r"(24\d{9})", line)
+                roll_no_match = re.search(r"(23\d{9})", line)
                 if not roll_no_match:
                     continue
                 roll_no = roll_no_match.group(1)
