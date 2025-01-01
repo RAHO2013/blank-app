@@ -88,10 +88,10 @@ def parse_admissions_data_from_pdf(file):
                 ph_match = re.search(r"(PHO)?", line[min_status_match.end():] if min_status_match else "")
                 ph = ph_match.group(1) if ph_match else ""
 
-                adm_details_match = re.search(r"(NS-|S-).*(-P1|-P2)$", line)
+                adm_details_match = re.search(r"(N.*1|S.*1)$", line)
                 if not adm_details_match:
                     continue
-                adm_details = adm_details_match.group(0)
+                adm_details = adm_details_match.group(1)
 
                 # Append structured row
                 structured_data.append([
