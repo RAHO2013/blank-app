@@ -11,6 +11,11 @@ def extract_college_course_details(file):
         if extracted_text:
             lines.extend(extracted_text.splitlines())
 
+    # Debugging: Print extracted lines
+    print("Extracted Lines:")
+    for line in lines:
+        print(line)
+
     # Initialize variables
     college_course_data = []
     current_college_code = ""
