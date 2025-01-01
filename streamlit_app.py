@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 from PyPDF2 import PdfReader
+import re
 
 def parse_admissions_data_from_pdf(file):
     # Read the uploaded PDF file
@@ -46,56 +47,51 @@ def parse_admissions_data_from_pdf(file):
 
         # Process student rows only if processing_rows is True
         elif processing_rows:
-            parts = line.split()
             try:
-                # Extract and validate Rank
-                rank = parts[0]
-                if not rank.isdigit():
+                # Use regex to extract specific parts of the line
+                rank_match = re.match(r"^(\d{1,6})\s", line)
+                if not rank_match:
                     continue
+                rank = rank_match.group(1)
 
-                # Extract and validate Roll Number
-                roll_no = parts[1]
-                if not (roll_no.isdigit() and len(roll_no) == 11 and roll_no.startswith("24")):
+                roll_no_match = re.search(r"(24\d{9})", line)
+                if not roll_no_match:
                     continue
+                roll_no = roll_no_match.group(1)
 
-                # Extract Percentile
-                percentile = parts[2]
-                if not percentile.replace(".", "").isdigit():
+                percentile_match = re.search(r"(\d+\.\d+)", line[roll_no_match.end():])
+                if not percentile_match:
                     continue
+                percentile = percentile_match.group(1)
 
-                # Extract Candidate Name
-                candidate_name_end_index = next((i for i, part in enumerate(parts[3:], start=3) if part in ["OU", "BCB", "BCA", "BCD", "BCC", "BCE", "ST", "SC", "OC"]), None)
-                candidate_name = " ".join(parts[3:candidate_name_end_index]) if candidate_name_end_index else ""
-
-                # Extract Location
-                loc = parts[candidate_name_end_index]
-                if loc != "OU":
+                candidate_name_start = percentile_match.end() + roll_no_match.end()
+                candidate_name_end = line.find("OU", candidate_name_start)
+                if candidate_name_end == -1:
                     continue
+                candidate_name = line[candidate_name_start:candidate_name_end].strip()
 
-                # Extract Category
-                cat = parts[candidate_name_end_index + 1]
-                if cat not in ["BCA", "BCB", "BCD", "BCC", "BCE", "ST", "SC", "OC"]:
-                    continue
+                loc = "OU"
 
-                # Extract Sex
-                sx = parts[candidate_name_end_index + 2]
-                if sx not in ["F", "M"]:
+                category_match = re.search(r"(BCA|BCB|BCD|BCC|BCE|ST|SC|OC)", line[candidate_name_end:])
+                if not category_match:
                     continue
+                cat = category_match.group(1)
 
-                # Extract MIN
-                min_status = parts[candidate_name_end_index + 3]
-                if min_status not in ["MSM", ""]:
+                sex_match = re.search(r"(F|M)", line[category_match.end():])
+                if not sex_match:
                     continue
+                sx = sex_match.group(1)
 
-                # Extract PH
-                ph = parts[candidate_name_end_index + 4]
-                if ph not in ["PHO", ""]:
-                    continue
+                min_status_match = re.search(r"(MSM)?", line[sex_match.end():])
+                min_status = min_status_match.group(1) if min_status_match else ""
 
-                # Extract Admission Details
-                adm_details = parts[candidate_name_end_index + 5]
-                if not (adm_details.startswith("N") or adm_details.startswith("S")) or not adm_details.endswith("1"):
+                ph_match = re.search(r"(PHO)?", line[min_status_match.end():] if min_status_match else "")
+                ph = ph_match.group(1) if ph_match else ""
+
+                adm_details_match = re.search(r"(N.*1|S.*1)$", line)
+                if not adm_details_match:
                     continue
+                adm_details = adm_details_match.group(1)
 
                 # Append structured row
                 structured_data.append([
