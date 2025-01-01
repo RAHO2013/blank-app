@@ -91,7 +91,7 @@ def parse_admissions_data_from_pdf(file):
                 adm_details_match = re.search(r"(NS-|S-).*(-P1|-P2|-P3|-P4)$", line)
                 if not adm_details_match:
                     continue
-                adm_details = adm_details_match.group(0)
+                adm_details = adm_details_match.group(1)
 
                 # Append structured row
                 structured_data.append([
