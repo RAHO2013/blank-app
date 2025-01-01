@@ -80,11 +80,10 @@ def extract_college_course_and_student_details(file):
                 sex_match = re.match(r"^(F|M)(\s|$)", remaining_line)
                 if sex_match:
                     sx = sex_match.group(1)
-                # If the line starts with "M" after location and category, it must be sex
                 elif remaining_line.startswith("M"):
-                    sx = "M"
+                    sx = "M"  # Assume M is sex if it starts the remaining line
                 else:
-                    sx = ""
+                    sx = ""  # Default to blank if not matched
 
                 # Match MIN (MSM or blank)
                 min_match = re.search(r"(MSM)?", remaining_line[sex_match.end():] if sex_match else "")
