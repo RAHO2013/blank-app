@@ -41,6 +41,9 @@ def extract_college_course_and_student_details(file):
         # Process student rows based on specific rules
         else:
             try:
+                # Normalize multiple spaces to a single space
+                line = re.sub(r"\s{2,}", " ", line)
+
                 # Start extracting from the rightmost elements
                 # Match admission details (starts with NS- or S- and ends with -P1, -P2, -P3, or -P4)
                 adm_details_match = re.search(r"(NS-|S-).*(-P1|-P2|-P3|-P4)$", line)
@@ -62,7 +65,22 @@ def extract_college_course_and_student_details(file):
                 sx = sex_match.group(1) if sex_match else ""
                 remaining_line = remaining_line[:remaining_line.rfind(sx)].strip() if sx else remaining_line
 
-                # Extract remaining fields from left to right
+                # Match location (fixed "OU"), ensuring it is correctly positioned
+                loc_match = re.search(r"\bOU\b", remaining_line)
+                if loc_match:
+                    loc = "OU"
+                    remaining_line = remaining_line[:loc_match.start()].strip()
+                else:
+                    loc = ""
+
+                # Match category (specific categories allowed)
+                category_match = re.search(r"(BCA|BCB|BCD|BCC|BCE|ST|SC|OC)$", remaining_line)
+                if category_match:
+                    cat = category_match.group(1)
+                    remaining_line = remaining_line[:category_match.start()].strip()
+                else:
+                    cat = ""
+
                 # Match rank (1 to 6 digits)
                 rank_match = re.match(r"^(\d{1,6})\s", remaining_line)
                 if not rank_match:
@@ -81,21 +99,9 @@ def extract_college_course_and_student_details(file):
                     continue
                 percentile = percentile_match.group(1)
 
-                # Match candidate name (all letters between percentile and location)
-                candidate_name_start = remaining_line.find(percentile) + len(percentile)
-                candidate_name_end = remaining_line.find("OU", candidate_name_start)
-                if candidate_name_end == -1:
-                    continue
-                candidate_name = remaining_line[candidate_name_start:candidate_name_end].strip()
-
-                # Match location (fixed "OU")
-                loc = "OU"
-
-                # Match category (specific categories allowed)
-                category_match = re.search(r"(BCA|BCB|BCD|BCC|BCE|ST|SC|OC)", remaining_line[candidate_name_end:])
-                if not category_match:
-                    continue
-                cat = category_match.group(1)
+                # Match candidate name (remaining part after rank, roll_no, and percentile)
+                candidate_name_start = remaining_line.find(rank) + len(rank)
+                candidate_name = remaining_line[candidate_name_start:roll_no_match.start()].strip()
 
                 # Append structured row
                 structured_data.append([
