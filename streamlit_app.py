@@ -105,6 +105,7 @@ def extract_college_course_and_student_details(file):
                     loc, cat, sx, min_status, ph, adm_details
                 ])
             except Exception as e:
+                print(f"Error processing line: {line}, Error: {e}")
                 continue
 
     # Define DataFrame columns
