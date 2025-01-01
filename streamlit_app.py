@@ -74,6 +74,9 @@ def parse_admissions_data_from_pdf(file):
         "Sex", "MIN", "PH", "Admission Details"
     ]
 
+    # Remove duplicate headers if present in the structured data
+    structured_data = [row for row in structured_data if row[4].lower() != "rank"]
+
     # Create DataFrame
     df = pd.DataFrame(structured_data, columns=columns)
 
