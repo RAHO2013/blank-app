@@ -47,28 +47,65 @@ def parse_admissions_data_from_pdf(file):
         # Process student rows only if processing_rows is True
         elif processing_rows:
             parts = line.split()
-            if len(parts) >= 10:  # Ensure minimum columns for valid data
-                try:
-                    rank = parts[0]
-                    roll_no = parts[1]
-                    percentile = parts[2]
-                    candidate_name = " ".join(parts[3:-7])
-                    loc = parts[-7]
-                    cat = parts[-6]
-                    sx = parts[-5]
-                    min_status = parts[-4]
-                    ph = parts[-3]
-                    adm_details = " ".join(parts[-2:])
-
-                    # Append structured row
-                    structured_data.append([
-                        current_college_code, current_college_name, 
-                        current_course_code, current_course_name, 
-                        rank, roll_no, percentile, candidate_name, loc, cat, sx, 
-                        min_status, ph, adm_details
-                    ])
-                except Exception as e:
+            try:
+                # Extract and validate Rank
+                rank = parts[0]
+                if not rank.isdigit():
                     continue
+
+                # Extract and validate Roll Number
+                roll_no = parts[1]
+                if not (roll_no.isdigit() and len(roll_no) == 11 and roll_no.startswith("24")):
+                    continue
+
+                # Extract Percentile
+                percentile = parts[2]
+                if not percentile.replace(".", "").isdigit():
+                    continue
+
+                # Extract Candidate Name
+                candidate_name_end_index = next((i for i, part in enumerate(parts[3:], start=3) if part in ["OU", "BCB", "BCA", "BCD", "BCC", "BCE", "ST", "SC", "OC"]), None)
+                candidate_name = " ".join(parts[3:candidate_name_end_index]) if candidate_name_end_index else ""
+
+                # Extract Location
+                loc = parts[candidate_name_end_index]
+                if loc != "OU":
+                    continue
+
+                # Extract Category
+                cat = parts[candidate_name_end_index + 1]
+                if cat not in ["BCA", "BCB", "BCD", "BCC", "BCE", "ST", "SC", "OC"]:
+                    continue
+
+                # Extract Sex
+                sx = parts[candidate_name_end_index + 2]
+                if sx not in ["F", "M"]:
+                    continue
+
+                # Extract MIN
+                min_status = parts[candidate_name_end_index + 3]
+                if min_status not in ["MSM", ""]:
+                    continue
+
+                # Extract PH
+                ph = parts[candidate_name_end_index + 4]
+                if ph not in ["PHO", ""]:
+                    continue
+
+                # Extract Admission Details
+                adm_details = parts[candidate_name_end_index + 5]
+                if not (adm_details.startswith("N") or adm_details.startswith("S")) or not adm_details.endswith("1"):
+                    continue
+
+                # Append structured row
+                structured_data.append([
+                    current_college_code, current_college_name, 
+                    current_course_code, current_course_name, 
+                    rank, roll_no, percentile, candidate_name, loc, cat, sx, 
+                    min_status, ph, adm_details
+                ])
+            except Exception as e:
+                continue
 
     # Define DataFrame columns
     columns = [
