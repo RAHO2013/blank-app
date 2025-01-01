@@ -80,8 +80,6 @@ def extract_college_course_and_student_details(file):
                 sex_match = re.match(r"^(F|M)(\s|$)", remaining_line)
                 if sex_match:
                     sx = sex_match.group(1)
-                elif remaining_line.startswith("M"):
-                    sx = "M"  # Assume M is sex if it starts the remaining line
                 else:
                     sx = ""  # Default to blank if not matched
 
