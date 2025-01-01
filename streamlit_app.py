@@ -31,14 +31,12 @@ def extract_college_course_and_student_details(file):
             parts = line.split(" - ")
             current_college_code = parts[0].replace("COLL ::", "").strip()
             current_college_name = parts[1].strip() if len(parts) > 1 else ""
-            continue
 
         # Capture course details from CRS ::
         elif line.startswith("CRS ::"):
             parts = line.split(" - ")
             current_course_code = parts[0].replace("CRS ::", "").strip()
             current_course_name = parts[1].strip() if len(parts) > 1 else ""
-            continue
 
         # Process student rows based on specific rules
         else:
@@ -46,12 +44,7 @@ def extract_college_course_and_student_details(file):
                 # Treat large spaces as delimiters by splitting on multiple spaces
                 fields = re.split(r"\s{2,}", line)
 
-                # Debugging: Log the extracted fields
-                print(f"Processing line: {line}")
-                print(f"Extracted fields: {fields}")
-
                 if len(fields) < 10:  # Ensure there are enough fields for processing
-                    print(f"Skipped line due to insufficient fields: {fields}")
                     continue
 
                 # Extract fields based on expected positions
