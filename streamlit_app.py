@@ -8,8 +8,10 @@ def parse_pdf(file):
     data = []
     college_code, college_name, course_code, course_name = None, None, None, None
 
+    # Read the PDF pages
     for page in PdfReader(file).pages:
         text = page.extract_text()
+
         lines = text.splitlines()
 
         for line in lines:
