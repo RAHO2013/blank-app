@@ -48,12 +48,12 @@ def extract_college_course_and_student_details(file):
                 remaining_line = line[:line.rfind(adm_details)].strip() if adm_details else line
 
                 # Match PH (PHO or blank)
-                ph_match = re.search(r"(PHO)?", remaining_line)
+                ph_match = re.search(r"(PHO)", remaining_line)
                 ph = ph_match.group(1) if ph_match else ""
                 remaining_line = remaining_line[:remaining_line.rfind(ph)].strip() if ph else remaining_line
 
                 # Match MIN (MSM or blank)
-                min_match = re.search(r"(MSM)?", remaining_line)
+                min_match = re.search(r"(MSM)", remaining_line)
                 min_status = min_match.group(1) if min_match else ""
                 remaining_line = remaining_line[:remaining_line.rfind(min_status)].strip() if min_status else remaining_line
 
