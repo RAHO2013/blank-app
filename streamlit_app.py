@@ -81,7 +81,9 @@ def parse_admissions_data_from_pdf(file):
                     continue
                 cat = category_match.group(1)
 
-                sex_match = re.search(r"(F|M)", line[category_match.end():])
+                # Extract gender only after category and ensure it's valid
+                gender_start = category_match.end()
+                sex_match = re.search(r"\b(F|M)\b", line[gender_start:])
                 if not sex_match:
                     continue
                 sx = sex_match.group(1)
