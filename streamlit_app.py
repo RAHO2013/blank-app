@@ -1,9 +1,13 @@
 import streamlit as st
 import pandas as pd
+from PyPDF2 import PdfReader
 
-def parse_admissions_data(file):
-    # Read the uploaded text file
-    lines = file.read().decode("utf-8").splitlines()
+def parse_admissions_data_from_pdf(file):
+    # Read the uploaded PDF file
+    reader = PdfReader(file)
+    lines = []
+    for page in reader.pages:
+        lines.extend(page.extract_text().splitlines())
 
     # Initialize variables
     structured_data = []
@@ -70,13 +74,13 @@ def parse_admissions_data(file):
     return df
 
 # Streamlit interface
-st.title("Admissions Data Parser")
+st.title("Admissions Data Parser (PDF Support)")
 
-uploaded_file = st.file_uploader("Upload your admissions text file", type=["txt"])
+uploaded_file = st.file_uploader("Upload your admissions PDF file", type=["pdf"])
 
 if uploaded_file is not None:
-    # Parse the uploaded file
-    df = parse_admissions_data(uploaded_file)
+    # Parse the uploaded PDF file
+    df = parse_admissions_data_from_pdf(uploaded_file)
 
     # Display the DataFrame
     st.write("### Parsed Admissions Data")
