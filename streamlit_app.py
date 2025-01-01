@@ -41,67 +41,23 @@ def extract_college_course_and_student_details(file):
         # Process student rows based on specific rules
         else:
             try:
-                # Normalize multiple spaces to a single space
-                line = re.sub(r"\s{2,}", " ", line)
+                # Treat large spaces as delimiters by splitting on multiple spaces
+                fields = re.split(r"\s{2,}", line)
 
-                # Start extracting from the rightmost elements
-                # Match admission details (starts with NS- or S- and ends with -P1, -P2, -P3, or -P4)
-                adm_details_match = re.search(r"(NS-|S-).*(-P1|-P2|-P3|-P4)$", line)
-                adm_details = adm_details_match.group(0) if adm_details_match else ""
-                remaining_line = line[:line.rfind(adm_details)].strip() if adm_details else line
-
-                # Match PH (PHO or blank)
-                ph_match = re.search(r"(PHO)?", remaining_line)
-                ph = ph_match.group(1) if ph_match else ""
-                remaining_line = remaining_line[:remaining_line.rfind(ph)].strip() if ph else remaining_line
-
-                # Match MIN (MSM or blank)
-                min_match = re.search(r"(MSM)?", remaining_line)
-                min_status = min_match.group(1) if min_match else ""
-                remaining_line = remaining_line[:remaining_line.rfind(min_status)].strip() if min_status else remaining_line
-
-                # Match sex (F or M), ensuring it is valid and not part of another field
-                sex_match = re.search(r"(F|M)(\s|$)", remaining_line)
-                sx = sex_match.group(1) if sex_match else ""
-                remaining_line = remaining_line[:remaining_line.rfind(sx)].strip() if sx else remaining_line
-
-                # Match location (fixed "OU"), ensuring it is correctly positioned
-                loc_match = re.search(r"\bOU\b", remaining_line)
-                if loc_match:
-                    loc = "OU"
-                    remaining_line = remaining_line[:loc_match.start()].strip()
-                else:
-                    loc = ""
-
-                # Match category (specific categories allowed)
-                category_match = re.search(r"(BCA|BCB|BCD|BCC|BCE|ST|SC|OC)$", remaining_line)
-                if category_match:
-                    cat = category_match.group(1)
-                    remaining_line = remaining_line[:category_match.start()].strip()
-                else:
-                    cat = ""
-
-                # Match rank (1 to 6 digits)
-                rank_match = re.match(r"^(\d{1,6})\s", remaining_line)
-                if not rank_match:
+                if len(fields) < 10:  # Ensure there are enough fields for processing
                     continue
-                rank = rank_match.group(1)
 
-                # Match roll number (11 digits starting with 24)
-                roll_no_match = re.search(r"(24\d{9})", remaining_line)
-                if not roll_no_match:
-                    continue
-                roll_no = roll_no_match.group(1)
-
-                # Match percentile (a floating-point number after roll number)
-                percentile_match = re.search(r"(\d+\.\d+)", remaining_line[roll_no_match.end():])
-                if not percentile_match:
-                    continue
-                percentile = percentile_match.group(1)
-
-                # Match candidate name (remaining part after rank, roll_no, and percentile)
-                candidate_name_start = remaining_line.find(rank) + len(rank)
-                candidate_name = remaining_line[candidate_name_start:roll_no_match.start()].strip()
+                # Extract fields based on expected positions
+                rank = fields[0]
+                roll_no = fields[1]
+                percentile = fields[2]
+                candidate_name = fields[3]
+                loc = fields[4]
+                cat = fields[5]
+                sx = fields[6]
+                min_status = fields[7] if fields[7] in ["MSM", ""] else ""
+                ph = fields[8] if fields[8] in ["PHO", ""] else ""
+                adm_details = fields[9] if re.match(r"(NS-|S-).*(-P1|-P2|-P3|-P4)$", fields[9]) else ""
 
                 # Append structured row
                 structured_data.append([
