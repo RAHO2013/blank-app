@@ -81,6 +81,9 @@ def parse_admissions_data_from_pdf(file):
                 except Exception as e:
                     debug_log.append(f"Error processing row: {line}, Error: {e}")
 
+    # Log total rows captured
+    debug_log.append(f"Total rows captured: {len(structured_data)}")
+
     # Define DataFrame columns
     columns = [
         "College Code", "College Name", "Course Code", "Course Name", "Rank",
