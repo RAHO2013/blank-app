@@ -27,14 +27,14 @@ def parse_admissions_data_from_pdf(file):
         if not line or "-----" in line:
             continue
 
-        # Ensure data processing starts only after the first COLL section
+        # Capture college details from COLL ::
         if line.startswith("COLL ::"):
             parts = line.split(" - ")
             current_college_code = parts[0].replace("COLL ::", "").strip()
             current_college_name = parts[1].strip() if len(parts) > 1 else ""
             processing_rows = True  # Start processing rows after COLL is found
 
-        # Identify CRS sections
+        # Capture course details from CRS ::
         elif line.startswith("CRS ::"):
             if processing_rows:  # Only process CRS if a COLL has been encountered
                 parts = line.split(" - ")
