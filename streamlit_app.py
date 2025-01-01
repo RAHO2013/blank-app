@@ -17,6 +17,7 @@ def parse_admissions_data_from_pdf(file):
     current_college_name = ""
     current_course_code = ""
     current_course_name = ""
+    processing_rows = False  # Ensure rows are processed only after the first COLL section
 
     for line in lines:
         line = line.strip()
@@ -30,6 +31,7 @@ def parse_admissions_data_from_pdf(file):
             parts = line.split(" - ")
             current_college_code = parts[0].replace("COLL ::", "").strip()
             current_college_name = parts[1].strip() if len(parts) > 1 else ""
+            processing_rows = True  # Start processing rows after COLL is found
 
         # Identify CRS sections
         elif line.startswith("CRS ::"):
@@ -41,8 +43,8 @@ def parse_admissions_data_from_pdf(file):
         elif line.lower().startswith("rank roll_no percentile"):
             continue
 
-        # Process student rows
-        else:
+        # Process student rows only if processing_rows is True
+        elif processing_rows:
             parts = line.split()
             if len(parts) >= 10:  # Ensure minimum columns for valid data
                 rank = parts[0]
