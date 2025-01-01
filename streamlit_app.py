@@ -1,20 +1,15 @@
 import streamlit as st
 import pandas as pd
-from PyPDF2 import PdfReader
+import pdfplumber
 
 def extract_college_course_details(file):
     # Read the uploaded PDF file
-    reader = PdfReader(file)
     lines = []
-    for page in reader.pages:
-        extracted_text = page.extract_text()
-        if extracted_text:
-            lines.extend(extracted_text.splitlines())
-
-    # Debugging: Print extracted lines
-    print("Extracted Lines:")
-    for line in lines:
-        print(line)
+    with pdfplumber.open(file) as pdf:
+        for page in pdf.pages:
+            extracted_text = page.extract_text()
+            if extracted_text:
+                lines.extend(extracted_text.splitlines())
 
     # Initialize variables
     college_course_data = []
