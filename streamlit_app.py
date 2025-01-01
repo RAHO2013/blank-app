@@ -111,6 +111,10 @@ if uploaded_file is not None:
         st.write("### Parsed Admissions Data")
         st.dataframe(df)
 
+        # Display a preview of the data for validation
+        st.write("### Data Preview")
+        st.table(df.head(10))  # Show first 10 rows of the DataFrame for validation
+
         # Allow user to download the Excel file
         excel_file = "structured_admissions_data.xlsx"
         df.to_excel(excel_file, index=False)
