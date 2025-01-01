@@ -40,7 +40,7 @@ def parse_admissions_data_from_pdf(file):
             current_course_name = parts[1].strip() if len(parts) > 1 else ""
 
         # Skip repeated headers
-        elif line.lower().startswith("rank roll_no percentile"):
+        elif line.lower().startswith("rank roll_no percentile candidate_name loc cat sx min ph adm details"):
             continue
 
         # Process student rows only if processing_rows is True
