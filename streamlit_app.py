@@ -49,20 +49,20 @@ def parse_admissions_data_from_pdf(file):
         elif processing_rows:
             try:
                 # Use regex to extract specific parts of the line
-                rank_match = re.match(r"^(\d{1,6})\s", line)
+                rank_match = re.match(r"^\d{1,6}\s", line)
                 if not rank_match:
                     continue
-                rank = rank_match.group(1)
+                rank = rank_match.group(0).strip()
 
-                roll_no_match = re.search(r"(24\d{9})", line)
+                roll_no_match = re.search(r"24\d{9}", line)
                 if not roll_no_match:
                     continue
-                roll_no = roll_no_match.group(1)
+                roll_no = roll_no_match.group(0)
 
-                percentile_match = re.search(r"(\d+\.\d+)", line[roll_no_match.end():])
+                percentile_match = re.search(r"\d+\.\d+", line[roll_no_match.end():])
                 if not percentile_match:
                     continue
-                percentile = percentile_match.group(1)
+                percentile = percentile_match.group(0)
 
                 candidate_name_start = percentile_match.end() + roll_no_match.end()
                 candidate_name_end = line.find("OU", candidate_name_start)
@@ -127,7 +127,7 @@ if uploaded_file is not None:
     if not df.empty:
         # Display the DataFrame
         st.write("### Parsed Admissions Data")
-        st.dataframe(df)
+        st.dataframe(df, height=600)  # Adjust height for larger datasets
 
         # Allow user to download the Excel file
         excel_file = "structured_admissions_data.xlsx"
