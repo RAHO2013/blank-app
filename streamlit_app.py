@@ -28,8 +28,26 @@ def create_word_doc(content):
                     row_cells[i].text = str(value)
         for chart in section.get('charts', []):
             doc.add_paragraph(f"Chart: {chart['title']}")
-            doc.add_picture(chart['filename'])
+            image_stream = chart["image_buffer"]
+            doc.add_picture(image_stream)
     return doc
+
+# Helper function to apply manual ranges
+def apply_manual_ranges(value, ranges):
+    for r in ranges:
+        if r.startswith("<"):
+            threshold = float(r[1:])
+            if value < threshold:
+                return r
+        elif r.startswith(">"):
+            threshold = float(r[1:])
+            if value > threshold:
+                return r
+        elif "-" in r:
+            low, high = map(float, r.split("-"))
+            if low <= value < high:
+                return r
+    return "Other"  # Catch-all for values outside specified ranges
 
 # Upload data
 st.title("Streamlit Data Analysis App")
@@ -50,18 +68,35 @@ if uploaded_file:
         for column in df.columns:
             if df[column].dtype in [np.int64, np.float64, object]:
                 st.subheader(f"Distribution for {column}")
-                use_ranges = st.checkbox(f"Use Ranges for {column}?", key=f"{column}_ranges")
-                if use_ranges and df[column].dtype in [np.int64, np.float64]:
-                    range_step = st.number_input(
-                        f"Step size for {column} ranges",
-                        min_value=0.01 if df[column].dtype == np.float64 else 1,
-                        value=10 if df[column].dtype == np.int64 else 0.1,
-                        key=f"{column}_range_step",
-                    )
-                    bins = np.arange(df[column].min(), df[column].max() + range_step, range_step)
-                    labels = [f"{round(bins[i], 2)}-{round(bins[i + 1], 2)}" for i in range(len(bins) - 1)]
-                    df[column] = pd.cut(df[column], bins=bins, labels=labels, right=False)
 
+                # Option to use manual ranges or automatic binning
+                use_manual_ranges = st.checkbox(f"Use Manual Ranges for {column}?", key=f"{column}_manual_ranges")
+                manual_ranges = []
+                if use_manual_ranges and df[column].dtype in [np.int64, np.float64]:
+                    st.write("Specify manual ranges (e.g., '<5', '5-10', '>90')")
+                    manual_ranges = st.text_area(
+                        f"Enter ranges for {column} (one range per line)", 
+                        value="<5\n5-10\n10-20\n>90",
+                        key=f"{column}_manual_range_input"
+                    ).splitlines()
+
+                # Use automatic binning if manual ranges are not specified
+                if not use_manual_ranges or not manual_ranges:
+                    use_ranges = st.checkbox(f"Use Dynamic Ranges for {column}?", key=f"{column}_ranges")
+                    if use_ranges and df[column].dtype in [np.int64, np.float64]:
+                        range_step = st.number_input(
+                            f"Step size for {column} ranges",
+                            min_value=0.01 if df[column].dtype == np.float64 else 1,
+                            value=10 if df[column].dtype == np.int64 else 0.1,
+                            key=f"{column}_range_step",
+                        )
+                        bins = np.arange(df[column].min(), df[column].max() + range_step, range_step)
+                        labels = [f"{round(bins[i], 2)}-{round(bins[i + 1], 2)}" for i in range(len(bins) - 1)]
+                        df[column] = pd.cut(df[column], bins=bins, labels=labels, right=False)
+                elif use_manual_ranges:
+                    df[column] = df[column].apply(lambda x: apply_manual_ranges(x, manual_ranges))
+
+                # Create distribution table
                 distribution = df[column].value_counts().reset_index()
                 distribution.columns = [column, "Count"]
                 distribution["Percentage"] = (distribution["Count"] / distribution["Count"].sum() * 100).round(2).astype(str) + '%'
@@ -91,9 +126,10 @@ if uploaded_file:
                     st.pyplot(fig)
 
                     # Save chart for Word export
-                    chart_filename = f"{column}_distribution.png"
-                    fig.savefig(chart_filename)
-                    tab1_content["charts"].append({"title": f"{column} Distribution", "filename": chart_filename})
+                    buffer = BytesIO()
+                    fig.savefig(buffer, format="png")
+                    buffer.seek(0)
+                    tab1_content["charts"].append({"title": f"{column} Distribution", "image_buffer": buffer})
                 else:
                     st.info(f"No data available for column {column}.")
 
@@ -134,7 +170,7 @@ if uploaded_file:
                     df[col1].median(),
                     df[col1].std(),
                     None,  # Placeholder for T-Statistic
-                    None,  # Placeholder for P-Value
+                    None,  # Placeholder for P-Value,
                 ],
                 col2: [
                     df[col2].mean(),
