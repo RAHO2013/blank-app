@@ -19,7 +19,7 @@ if uploaded_file:
     with tab1:
         st.header("Automated Distribution Tables")
         for column in df.columns:
-            if df[column].dtype in [np.int64, np.float64, np.object]:
+            if df[column].dtype in [np.int64, np.float64, object]:  # Updated to replace np.object
                 st.subheader(f"Distribution for {column}")
                 distribution = df[column].value_counts(normalize=True).reset_index()
                 distribution.columns = [column, "Count"]
