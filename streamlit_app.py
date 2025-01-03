@@ -7,6 +7,7 @@ import seaborn as sns
 from io import BytesIO
 from docx import Document
 
+
 # Function to create a Word document
 def create_word_doc(content):
     doc = Document()
@@ -32,6 +33,7 @@ def create_word_doc(content):
             doc.add_picture(image_stream)
     return doc
 
+
 # Helper function to apply manual ranges
 def apply_manual_ranges(value, ranges):
     sorted_ranges = sorted(ranges, key=lambda x: float(x[1:]) if x[0] in "<>" else float(x.split("-")[0]))
@@ -50,8 +52,9 @@ def apply_manual_ranges(value, ranges):
                 return r
     return "Other"  # Catch-all for values outside specified ranges
 
+
 # Upload data
-st.title("Eternals cREAtorspro")
+st.title("Streamlit Data Analysis App")
 uploaded_file = st.file_uploader("Upload your Excel file", type=["xlsx"])
 
 if uploaded_file:
@@ -66,6 +69,7 @@ if uploaded_file:
         st.header("Automated Distribution Tables")
         tab1_content = {"title": "Distribution Tables", "tables": [], "charts": []}
 
+        # Combined Distribution Table
         combined_columns = st.multiselect("Select Columns for Combined Distribution", df.columns)
         if combined_columns:
             st.write(f"Combined Distribution for Columns: {', '.join(combined_columns)}")
@@ -74,9 +78,14 @@ if uploaded_file:
             combined_distribution["Percentage"] = (combined_distribution["Count"] / combined_distribution["Count"].sum() * 100).round(2).astype(str) + "%"
             combined_distribution.reset_index(drop=True, inplace=True)
             combined_distribution.index = combined_distribution.index + 1  # Start index from 1
+
+            # Convert all columns to strings
+            combined_distribution = combined_distribution.astype(str)
+
             st.dataframe(combined_distribution)
             tab1_content["tables"].append({"title": "Combined Distribution", "dataframe": combined_distribution})
 
+        # Individual Column Distribution
         for column in df.columns:
             if df[column].dtype in [np.int64, np.float64, object]:
                 st.subheader(f"Distribution for {column}")
