@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-from scipy.stats import ttest_ind
+from scipy.stats import ttest_ind, f_oneway
 import matplotlib.pyplot as plt
 import seaborn as sns
 from io import BytesIO
@@ -123,6 +123,7 @@ if uploaded_file:
                     ax.set_xlabel(x_label)
                     ax.set_ylabel(y_label)
                     ax.legend([legend_label])
+                    ax.tick_params(axis="x", rotation=0)  # Set x-axis labels to horizontal
                     st.pyplot(fig)
 
                     # Save chart for Word export
@@ -135,31 +136,14 @@ if uploaded_file:
 
         export_content.append(tab1_content)
 
-    # Tab 2: Pivot Tables
-    with tab2:
-        st.header("Pivot Tables")
-        st.write("Select columns to create pivot tables.")
-        rows = st.multiselect("Rows", df.columns)
-        cols = st.multiselect("Columns", df.columns)
-        values = st.selectbox("Values", df.columns)
-        agg_func = st.selectbox("Aggregation Function", ["mean", "sum", "count", "max", "min"])
-        filters = st.multiselect("Filters", df.columns)
-
-        if st.button("Generate Pivot Table"):
-            try:
-                pivot_table = pd.pivot_table(df, index=rows, columns=cols, values=values, aggfunc=agg_func)
-                pivot_table.reset_index(drop=True, inplace=True)
-                pivot_table.index = pivot_table.index + 1  # Start index from 1
-                st.dataframe(pivot_table)
-            except Exception as e:
-                st.error(f"Error generating pivot table: {e}")
-
     # Tab 3: Statistical Analysis
     with tab3:
         st.header("Statistical Analysis")
         st.write("Select columns for statistical calculations.")
         selected_columns = st.multiselect("Select Columns", df.select_dtypes(include=[np.number]).columns)
-        if len(selected_columns) >= 2:
+        
+        # T-Test
+        if len(selected_columns) == 2:
             col1, col2 = selected_columns[:2]
             st.write(f"Calculating statistics between {col1} and {col2}")
 
@@ -190,57 +174,10 @@ if uploaded_file:
             stats_df.index = stats_df.index + 1  # Start index from 1
             st.dataframe(stats_df)
 
-    # Tab 4: Correlations
-    with tab4:
-        st.header("Correlations")
-        st.write("Correlation matrix of numeric columns.")
-        numeric_df = df.select_dtypes(include=[np.number])
-        if numeric_df.empty:
-            st.warning("No numeric columns available for correlation.")
-        else:
-            correlation_matrix = numeric_df.corr()
-            correlation_matrix.reset_index(drop=True, inplace=True)
-            correlation_matrix.index = correlation_matrix.index + 1  # Start index from 1
-            st.dataframe(correlation_matrix)
-
-            fig, ax = plt.subplots()
-            sns.heatmap(correlation_matrix, annot=True, cmap="coolwarm", ax=ax)
-            ax.set_title("Correlation Heatmap")
-            st.pyplot(fig)
-
-    # Tab 5: Graph Builder
-    with tab5:
-        st.header("Graph Builder")
-        st.write("Select columns to build graphs.")
-        x_col = st.selectbox("X-Axis", df.columns)
-        y_col = st.selectbox("Y-Axis", df.columns)
-        graph_type = st.selectbox("Graph Type", ["Scatter", "Line", "Bar", "Histogram", "Boxplot"])
-
-        graph_title = st.text_input("Graph Title", value=f"{x_col} vs {y_col}")
-        x_label = st.text_input("X-Axis Label", value=x_col)
-        y_label = st.text_input("Y-Axis Label", value=y_col)
-
-        if st.button("Generate Graph"):
-            fig, ax = plt.subplots()
-            if graph_type == "Scatter":
-                sns.scatterplot(x=df[x_col], y=df[y_col], ax=ax)
-            elif graph_type == "Line":
-                sns.lineplot(x=df[x_col], y=df[y_col], ax=ax)
-            elif graph_type == "Bar":
-                sns.barplot(x=df[x_col], y=df[y_col], ax=ax)
-            elif graph_type == "Histogram":
-                sns.histplot(df[x_col], bins=30, kde=True, ax=ax)
-            elif graph_type == "Boxplot":
-                sns.boxplot(x=df[x_col], y=df[y_col], ax=ax)
-            ax.set_title(graph_title)
-            ax.set_xlabel(x_label)
-            ax.set_ylabel(y_label)
-            st.pyplot(fig)
-
-    # Download Button
-    if st.button("Download as Word Document"):
-        doc = create_word_doc(export_content)
-        buffer = BytesIO()
-        doc.save(buffer)
-        buffer.seek(0)
-        st.download_button("Download Word Document", buffer, "data_analysis.docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+        # ANOVA
+        if len(selected_columns) > 2:
+            st.write("Performing ANOVA test for selected columns.")
+            groups = [df[col].dropna() for col in selected_columns]
+            f_stat, p_value = f_oneway(*groups)
+            st.write(f"ANOVA F-Statistic: {f_stat:.4f}")
+            st.write(f"ANOVA P-Value: {p_value:.4f}")
