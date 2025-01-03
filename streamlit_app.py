@@ -28,7 +28,6 @@ def create_word_doc(content):
                     row_cells[i].text = str(value)
         for chart in section.get('charts', []):
             doc.add_paragraph(f"Chart: {chart['title']}")
-            chart['figure'].savefig(chart['filename'])
             doc.add_picture(chart['filename'])
     return doc
 
@@ -53,14 +52,15 @@ if uploaded_file:
                 st.subheader(f"Distribution for {column}")
                 use_ranges = st.checkbox(f"Use Ranges for {column}?", key=f"{column}_ranges")
                 if use_ranges and df[column].dtype in [np.int64, np.float64]:
-                    range_step = st.number_input(f"Step size for {column} ranges", min_value=1, value=10, key=f"{column}_range_step")
-                    bins = list(range(int(df[column].min()), int(df[column].max()) + range_step, range_step))
-                    if len(bins) > 1:
-                        labels = [f"{bins[i]}-{bins[i+1]-1}" for i in range(len(bins)-1)]
-                        df[column] = pd.cut(df[column], bins=bins, labels=labels, right=False)
-                    else:
-                        st.warning(f"Invalid range for column {column}. Skipping range binning.")
-                        continue
+                    range_step = st.number_input(
+                        f"Step size for {column} ranges",
+                        min_value=0.01 if df[column].dtype == np.float64 else 1,
+                        value=10 if df[column].dtype == np.int64 else 0.1,
+                        key=f"{column}_range_step",
+                    )
+                    bins = np.arange(df[column].min(), df[column].max() + range_step, range_step)
+                    labels = [f"{round(bins[i], 2)}-{round(bins[i + 1], 2)}" for i in range(len(bins) - 1)]
+                    df[column] = pd.cut(df[column], bins=bins, labels=labels, right=False)
 
                 distribution = df[column].value_counts().reset_index()
                 distribution.columns = [column, "Count"]
@@ -75,14 +75,25 @@ if uploaded_file:
                     st.dataframe(distribution)
                     tab1_content["tables"].append({"title": f"Distribution for {column}", "dataframe": distribution})
 
+                    # Graph Customization Options
+                    graph_title = st.text_input(f"Graph Title for {column}", value=f"{column} Distribution", key=f"{column}_title")
+                    x_label = st.text_input(f"X-Axis Label for {column}", value=column, key=f"{column}_x_label")
+                    y_label = st.text_input(f"Y-Axis Label for {column}", value="Count", key=f"{column}_y_label")
+                    legend_label = st.text_input(f"Legend Label for {column}", value="Values", key=f"{column}_legend")
+
                     # Plot chart
-                    if len(distribution) > 1:
-                        fig, ax = plt.subplots()
-                        distribution.iloc[:-1].plot(kind="bar", x=column, y="Count", ax=ax, legend=False)
-                        ax.set_title(f"{column} Distribution")
-                        st.pyplot(fig)
-                    else:
-                        st.info(f"No data available to plot for column {column}.")
+                    fig, ax = plt.subplots()
+                    distribution.iloc[:-1].plot(kind="bar", x=column, y="Count", ax=ax, legend=False)
+                    ax.set_title(graph_title)
+                    ax.set_xlabel(x_label)
+                    ax.set_ylabel(y_label)
+                    ax.legend([legend_label])
+                    st.pyplot(fig)
+
+                    # Save chart for Word export
+                    chart_filename = f"{column}_distribution.png"
+                    fig.savefig(chart_filename)
+                    tab1_content["charts"].append({"title": f"{column} Distribution", "filename": chart_filename})
                 else:
                     st.info(f"No data available for column {column}.")
 
@@ -116,7 +127,6 @@ if uploaded_file:
             col1, col2 = selected_columns[:2]
             st.write(f"Calculating statistics between {col1} and {col2}")
 
-            # Compute statistics
             stats = {
                 "Metric": ["Mean", "Median", "Std Dev", "T-Statistic", "P-Value"],
                 col1: [
