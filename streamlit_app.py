@@ -4,6 +4,33 @@ import numpy as np
 from scipy.stats import ttest_ind
 import matplotlib.pyplot as plt
 import seaborn as sns
+from io import BytesIO
+from docx import Document
+
+# Function to create a Word document
+def create_word_doc(content):
+    doc = Document()
+    for section in content:
+        doc.add_heading(section['title'], level=1)
+        for table in section.get('tables', []):
+            doc.add_paragraph(f"Table: {table['title']}")
+            df = table['dataframe']
+            table_doc = doc.add_table(rows=1, cols=len(df.columns))
+            table_doc.style = 'Table Grid'
+            # Add headers
+            hdr_cells = table_doc.rows[0].cells
+            for i, col in enumerate(df.columns):
+                hdr_cells[i].text = str(col)
+            # Add rows
+            for _, row in df.iterrows():
+                row_cells = table_doc.add_row().cells
+                for i, value in enumerate(row):
+                    row_cells[i].text = str(value)
+        for chart in section.get('charts', []):
+            doc.add_paragraph(f"Chart: {chart['title']}")
+            chart['figure'].savefig(chart['filename'])
+            doc.add_picture(chart['filename'])
+    return doc
 
 # Upload data
 st.title("Streamlit Data Analysis App")
@@ -11,6 +38,7 @@ uploaded_file = st.file_uploader("Upload your Excel file", type=["xlsx"])
 
 if uploaded_file:
     df = pd.read_excel(uploaded_file)
+    export_content = []
 
     # Tab structure
     tab1, tab2, tab3, tab4, tab5 = st.tabs(["Distribution Tables", "Pivot Tables", "Statistical Analysis", "Correlations", "Graph Builder"])
@@ -18,54 +46,55 @@ if uploaded_file:
     # Tab 1: Distribution Tables
     with tab1:
         st.header("Automated Distribution Tables")
+        tab1_content = {"title": "Distribution Tables", "tables": [], "charts": []}
+
         for column in df.columns:
             if df[column].dtype in [np.int64, np.float64, object]:
                 st.subheader(f"Distribution for {column}")
+                use_ranges = st.checkbox(f"Use Ranges for {column}?", key=f"{column}_ranges")
+                if use_ranges and df[column].dtype in [np.int64, np.float64]:
+                    range_step = st.number_input(f"Step size for {column} ranges", min_value=1, value=10, key=f"{column}_range_step")
+                    bins = list(range(int(df[column].min()), int(df[column].max()) + range_step, range_step))
+                    labels = [f"{bins[i]}-{bins[i+1]-1}" for i in range(len(bins)-1)]
+                    df[column] = pd.cut(df[column], bins=bins, labels=labels, right=False)
+
                 distribution = df[column].value_counts().reset_index()
                 distribution.columns = [column, "Count"]
                 distribution["Percentage"] = (distribution["Count"] / distribution["Count"].sum() * 100).round(2).astype(str) + '%'
                 distribution.reset_index(drop=True, inplace=True)
                 distribution.index = distribution.index + 1  # Start index from 1
+                total_row = pd.DataFrame({column: ["Total"], "Count": [distribution["Count"].sum()], "Percentage": ["100%"]})
+                distribution = pd.concat([distribution, total_row], ignore_index=True)
+
                 st.dataframe(distribution)
+                tab1_content["tables"].append({"title": f"Distribution for {column}", "dataframe": distribution})
 
-                # Plot chart with customization options
-                chart_type = st.selectbox(f"Select Chart Type for {column}", ["Bar", "Pie"], key=f"{column}_chart_type")
-                chart_title = st.text_input(f"Chart Title for {column}", value=f"{column} Distribution", key=f"{column}_title")
-                x_label = st.text_input(f"X-Axis Label for {column}", value=column, key=f"{column}_xlabel")
-                y_label = st.text_input(f"Y-Axis Label for {column}", value="Count", key=f"{column}_ylabel")
-                legend_label = st.text_input(f"Legend Label for {column}", value="Values", key=f"{column}_legend")
-
+                # Plot chart
                 fig, ax = plt.subplots()
-                if chart_type == "Bar":
-                    ax.bar(distribution[column], distribution["Count"], label=legend_label)
-                    ax.set_xlabel(x_label)
-                    ax.set_ylabel(y_label)
-                elif chart_type == "Pie":
-                    ax.pie(distribution["Count"], labels=distribution[column], autopct='%1.1f%%')
-                ax.set_title(chart_title)
-                ax.legend()
+                distribution.iloc[:-1].plot(kind="bar", x=column, y="Count", ax=ax, legend=False)
+                ax.set_title(f"{column} Distribution")
                 st.pyplot(fig)
+
+                # Save chart for export
+                chart_filename = f"{column}_distribution.png"
+                fig.savefig(chart_filename)
+                tab1_content["charts"].append({"title": f"{column} Distribution", "figure": fig, "filename": chart_filename})
+
+        export_content.append(tab1_content)
 
     # Tab 2: Pivot Tables
     with tab2:
         st.header("Pivot Tables")
         st.write("Select columns to create pivot tables.")
-
         rows = st.multiselect("Rows", df.columns)
         cols = st.multiselect("Columns", df.columns)
         values = st.selectbox("Values", df.columns)
-        filters = st.multiselect("Filters", df.columns)
         agg_func = st.selectbox("Aggregation Function", ["mean", "sum", "count", "max", "min"])
+        filters = st.multiselect("Filters", df.columns)
 
         if st.button("Generate Pivot Table"):
             try:
-                pivot_table = pd.pivot_table(
-                    df,
-                    index=rows,
-                    columns=cols,
-                    values=values,
-                    aggfunc=agg_func,
-                )
+                pivot_table = pd.pivot_table(df, index=rows, columns=cols, values=values, aggfunc=agg_func)
                 pivot_table.reset_index(drop=True, inplace=True)
                 pivot_table.index = pivot_table.index + 1  # Start index from 1
                 st.dataframe(pivot_table)
@@ -81,7 +110,6 @@ if uploaded_file:
             col1, col2 = selected_columns[:2]
             st.write(f"Calculating statistics between {col1} and {col2}")
 
-            # Calculate statistics
             mean1, mean2 = df[col1].mean(), df[col2].mean()
             median1, median2 = df[col1].median(), df[col2].median()
             std1, std2 = df[col1].std(), df[col2].std()
@@ -115,7 +143,6 @@ if uploaded_file:
         y_col = st.selectbox("Y-Axis", df.columns)
         graph_type = st.selectbox("Graph Type", ["Scatter", "Line", "Bar", "Histogram", "Boxplot"])
 
-        # Customization options for the graph
         graph_title = st.text_input("Graph Title", value=f"{x_col} vs {y_col}")
         x_label = st.text_input("X-Axis Label", value=x_col)
         y_label = st.text_input("Y-Axis Label", value=y_col)
@@ -136,3 +163,11 @@ if uploaded_file:
             ax.set_xlabel(x_label)
             ax.set_ylabel(y_label)
             st.pyplot(fig)
+
+    # Download Button
+    if st.button("Download as Word Document"):
+        doc = create_word_doc(export_content)
+        buffer = BytesIO()
+        doc.save(buffer)
+        buffer.seek(0)
+        st.download_button("Download Word Document", buffer, "data_analysis.docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document")
