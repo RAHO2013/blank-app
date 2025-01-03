@@ -19,11 +19,13 @@ if uploaded_file:
     with tab1:
         st.header("Automated Distribution Tables")
         for column in df.columns:
-            if df[column].dtype in [np.int64, np.float64, object]:  # Updated to replace np.object
+            if df[column].dtype in [np.int64, np.float64, object]:
                 st.subheader(f"Distribution for {column}")
                 distribution = df[column].value_counts(normalize=True).reset_index()
                 distribution.columns = [column, "Count"]
                 distribution["Percentage"] = (distribution["Count"] / distribution["Count"].sum() * 100).round(2).astype(str) + '%'
+                distribution.reset_index(drop=True, inplace=True)
+                distribution.index = distribution.index + 1  # Start index from 1
                 st.dataframe(distribution)
 
                 # Plot chart
@@ -38,14 +40,25 @@ if uploaded_file:
     with tab2:
         st.header("Pivot Tables")
         st.write("Select columns to create pivot tables.")
-        index_col = st.selectbox("Index", df.columns)
-        columns_col = st.selectbox("Columns", df.columns)
-        values_col = st.selectbox("Values", df.columns)
+
+        rows = st.multiselect("Rows", df.columns)
+        cols = st.multiselect("Columns", df.columns)
+        values = st.selectbox("Values", df.columns)
+        filters = st.multiselect("Filters", df.columns)
         agg_func = st.selectbox("Aggregation Function", ["mean", "sum", "count", "max", "min"])
 
         if st.button("Generate Pivot Table"):
-            pivot_table = pd.pivot_table(df, index=index_col, columns=columns_col, values=values_col, aggfunc=agg_func)
-            st.dataframe(pivot_table)
+            try:
+                pivot_table = pd.pivot_table(
+                    df,
+                    index=rows,
+                    columns=cols,
+                    values=values,
+                    aggfunc=agg_func,
+                )
+                st.dataframe(pivot_table)
+            except Exception as e:
+                st.error(f"Error generating pivot table: {e}")
 
     # Tab 3: Statistical Analysis
     with tab3:
@@ -73,6 +86,8 @@ if uploaded_file:
         st.header("Correlations")
         st.write("Correlation matrix of numeric columns.")
         correlation_matrix = df.corr()
+        correlation_matrix.reset_index(drop=True, inplace=True)
+        correlation_matrix.index = correlation_matrix.index + 1  # Start index from 1
         st.dataframe(correlation_matrix)
 
         # Heatmap
