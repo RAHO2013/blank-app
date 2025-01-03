@@ -34,7 +34,8 @@ def create_word_doc(content):
 
 # Helper function to apply manual ranges
 def apply_manual_ranges(value, ranges):
-    for r in ranges:
+    sorted_ranges = sorted(ranges, key=lambda x: float(x[1:]) if x[0] in "<>" else float(x.split("-")[0]))
+    for r in sorted_ranges:
         if r.startswith("<"):
             threshold = float(r[1:])
             if value < threshold:
@@ -116,9 +117,10 @@ if uploaded_file:
                     y_label = st.text_input(f"Y-Axis Label for {column}", value="Count", key=f"{column}_y_label")
                     legend_label = st.text_input(f"Legend Label for {column}", value="Values", key=f"{column}_legend")
 
-                    # Plot chart
+                    # Plot chart with color differentiation
                     fig, ax = plt.subplots()
-                    distribution.iloc[:-1].plot(kind="bar", x=column, y="Count", ax=ax, legend=False)
+                    colors = sns.color_palette("Set2", len(distribution.iloc[:-1]))
+                    distribution.iloc[:-1].plot(kind="bar", x=column, y="Count", ax=ax, legend=False, color=colors)
                     ax.set_title(graph_title)
                     ax.set_xlabel(x_label)
                     ax.set_ylabel(y_label)
