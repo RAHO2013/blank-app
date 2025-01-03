@@ -116,30 +116,51 @@ if uploaded_file:
             col1, col2 = selected_columns[:2]
             st.write(f"Calculating statistics between {col1} and {col2}")
 
-            mean1, mean2 = df[col1].mean(), df[col2].mean()
-            median1, median2 = df[col1].median(), df[col2].median()
-            std1, std2 = df[col1].std(), df[col2].std()
+            # Compute statistics
+            stats = {
+                "Metric": ["Mean", "Median", "Std Dev", "T-Statistic", "P-Value"],
+                col1: [
+                    df[col1].mean(),
+                    df[col1].median(),
+                    df[col1].std(),
+                    None,  # Placeholder for T-Statistic
+                    None,  # Placeholder for P-Value
+                ],
+                col2: [
+                    df[col2].mean(),
+                    df[col2].median(),
+                    df[col2].std(),
+                    None,
+                    None,
+                ],
+            }
             t_stat, p_value = ttest_ind(df[col1].dropna(), df[col2].dropna())
+            stats[col1][3] = t_stat
+            stats[col1][4] = p_value
+            stats[col2][3] = t_stat
+            stats[col2][4] = p_value
 
-            st.write(f"Mean: {mean1:.2f}, {mean2:.2f}")
-            st.write(f"Median: {median1:.2f}, {median2:.2f}")
-            st.write(f"Standard Deviation: {std1:.2f}, {std2:.2f}")
-            st.write(f"T-Statistic: {t_stat:.2f}")
-            st.write(f"P-Value: {p_value:.4f}")
+            stats_df = pd.DataFrame(stats)
+            stats_df.index = stats_df.index + 1  # Start index from 1
+            st.dataframe(stats_df)
 
     # Tab 4: Correlations
     with tab4:
         st.header("Correlations")
         st.write("Correlation matrix of numeric columns.")
-        correlation_matrix = df.corr()
-        correlation_matrix.reset_index(drop=True, inplace=True)
-        correlation_matrix.index = correlation_matrix.index + 1  # Start index from 1
-        st.dataframe(correlation_matrix)
+        numeric_df = df.select_dtypes(include=[np.number])
+        if numeric_df.empty:
+            st.warning("No numeric columns available for correlation.")
+        else:
+            correlation_matrix = numeric_df.corr()
+            correlation_matrix.reset_index(drop=True, inplace=True)
+            correlation_matrix.index = correlation_matrix.index + 1  # Start index from 1
+            st.dataframe(correlation_matrix)
 
-        # Heatmap
-        fig, ax = plt.subplots()
-        sns.heatmap(correlation_matrix, annot=True, cmap="coolwarm", ax=ax)
-        st.pyplot(fig)
+            fig, ax = plt.subplots()
+            sns.heatmap(correlation_matrix, annot=True, cmap="coolwarm", ax=ax)
+            ax.set_title("Correlation Heatmap")
+            st.pyplot(fig)
 
     # Tab 5: Graph Builder
     with tab5:
