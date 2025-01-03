@@ -55,30 +55,36 @@ if uploaded_file:
                 if use_ranges and df[column].dtype in [np.int64, np.float64]:
                     range_step = st.number_input(f"Step size for {column} ranges", min_value=1, value=10, key=f"{column}_range_step")
                     bins = list(range(int(df[column].min()), int(df[column].max()) + range_step, range_step))
-                    labels = [f"{bins[i]}-{bins[i+1]-1}" for i in range(len(bins)-1)]
-                    df[column] = pd.cut(df[column], bins=bins, labels=labels, right=False)
+                    if len(bins) > 1:
+                        labels = [f"{bins[i]}-{bins[i+1]-1}" for i in range(len(bins)-1)]
+                        df[column] = pd.cut(df[column], bins=bins, labels=labels, right=False)
+                    else:
+                        st.warning(f"Invalid range for column {column}. Skipping range binning.")
+                        continue
 
                 distribution = df[column].value_counts().reset_index()
                 distribution.columns = [column, "Count"]
                 distribution["Percentage"] = (distribution["Count"] / distribution["Count"].sum() * 100).round(2).astype(str) + '%'
                 distribution.reset_index(drop=True, inplace=True)
                 distribution.index = distribution.index + 1  # Start index from 1
-                total_row = pd.DataFrame({column: ["Total"], "Count": [distribution["Count"].sum()], "Percentage": ["100%"]})
-                distribution = pd.concat([distribution, total_row], ignore_index=True)
 
-                st.dataframe(distribution)
-                tab1_content["tables"].append({"title": f"Distribution for {column}", "dataframe": distribution})
+                if not distribution.empty:
+                    total_row = pd.DataFrame({column: ["Total"], "Count": [distribution["Count"].sum()], "Percentage": ["100%"]})
+                    distribution = pd.concat([distribution, total_row], ignore_index=True)
 
-                # Plot chart
-                fig, ax = plt.subplots()
-                distribution.iloc[:-1].plot(kind="bar", x=column, y="Count", ax=ax, legend=False)
-                ax.set_title(f"{column} Distribution")
-                st.pyplot(fig)
+                    st.dataframe(distribution)
+                    tab1_content["tables"].append({"title": f"Distribution for {column}", "dataframe": distribution})
 
-                # Save chart for export
-                chart_filename = f"{column}_distribution.png"
-                fig.savefig(chart_filename)
-                tab1_content["charts"].append({"title": f"{column} Distribution", "figure": fig, "filename": chart_filename})
+                    # Plot chart
+                    if len(distribution) > 1:
+                        fig, ax = plt.subplots()
+                        distribution.iloc[:-1].plot(kind="bar", x=column, y="Count", ax=ax, legend=False)
+                        ax.set_title(f"{column} Distribution")
+                        st.pyplot(fig)
+                    else:
+                        st.info(f"No data available to plot for column {column}.")
+                else:
+                    st.info(f"No data available for column {column}.")
 
         export_content.append(tab1_content)
 
