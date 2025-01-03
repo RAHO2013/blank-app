@@ -51,7 +51,7 @@ def apply_manual_ranges(value, ranges):
     return "Other"  # Catch-all for values outside specified ranges
 
 # Upload data
-st.title("Eternals creatorpro")
+st.title("Eternals cREAtorspro")
 uploaded_file = st.file_uploader("Upload your Excel file", type=["xlsx"])
 
 if uploaded_file:
